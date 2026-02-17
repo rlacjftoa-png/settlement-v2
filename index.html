@@ -1,3 +1,5 @@
+--- START OF FILE Paste February 17, 2026 - 11:26PM ---
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -28,20 +30,18 @@
 
         .button-group { position: relative; z-index: 10; background: linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,1) 20%); padding-top: 10px; }
 
-        .item-group { border: 1px solid #eee; border-radius: 12px; margin-bottom: 10px; overflow: hidden; background: #fff; position: relative; transition: all 0.3s ease; }
-        .item-group.collapsed { border-left: 6px solid var(--success); background: #fafbfc; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        .item-group.collapsed .title-text::before { content: "✔"; color: var(--success); margin-right: 6px; font-weight: bold; }
+        .item-group { border: 1px solid #eee; border-radius: 12px; margin-bottom: 10px; overflow: hidden; background: #fff; position: relative; transition: all 0.3s ease; border-left: 6px solid var(--success); }
         
         /* [수정] 헤더 레이아웃 */
         .item-header { padding: 12px 45px 12px 15px; cursor: pointer; display: flex; flex-direction: column; gap: 2px; }
+        .item-header .title-text::before { content: "✔"; color: var(--success); margin-right: 6px; font-weight: bold; }
         .sub-text { font-size: 0.75rem; color: #666; display: flex; align-items: center; gap: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .info-label { font-weight: bold; color: #888; }
         .info-val { color: #333; font-weight: 500; }
         .info-val.team-list { color: var(--primary); }
         .divider { color: #ddd; margin: 0 2px; }
 
-        .item-body { padding: 15px; border-top: 1px solid #eee; background: #fdfdfd; }
-        .collapsed .item-body { display: none; }
+        .item-body { display: none; } /* 이제 본체는 모달에서 보여줍니다 */
         
         .remove-btn { position: absolute; right: 5px; top: 8px; background: #f1f3f5; color: #adb5bd; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; border: none; z-index: 5; cursor: pointer; }
         .remove-btn:active { background: #dee2e6; color: #ff4d4f; }
@@ -119,7 +119,7 @@
     <div class="card">
         <div id="itemList"></div>
         <div class="button-group">
-            <button class="add-btn" onclick="addNewItem()">+ 새로운 차수 추가</button>
+            <button class="add-btn" onclick="openItemModal()">+ 새로운 차수 추가</button>
             <button class="clear-btn" onclick="clearAllItems()">🗑️ 모든 내역 지우기</button>
             <button class="calc-btn" onclick="calculate()">🚀 정산 결과 확인</button>
         </div>
@@ -136,6 +136,18 @@
     
     <div id="actionButtons" style="display:none;">
         <button class="image-btn" onclick="saveAsImage()">🖼️ 리포트 이미지로 저장하기</button>
+    </div>
+</div>
+
+<!-- 항목 추가/수정 모달 -->
+<div id="itemModal" class="modal-overlay">
+    <div class="modal-card">
+        <h3 class="modal-title" id="itemModalTitle">차수 정보 입력</h3>
+        <div id="itemModalBody">
+            <!-- JavaScript에서 동적으로 생성 -->
+        </div>
+        <button class="save-btn" onclick="saveItemFromModal()">✔ 저장하기</button>
+        <button class="modal-close-btn" onclick="closeItemModal()" style="background:#eee; color:#666;">닫기</button>
     </div>
 </div>
 
@@ -176,6 +188,7 @@
     };
 
     let appConfig = JSON.parse(localStorage.getItem('appConfig')) || defaultConfig;
+    let currentEditingIndex = -1; // -1이면 신규 추가
 
     window.onload = function() { loadData(); }
 
@@ -232,116 +245,115 @@
         const savedData = localStorage.getItem('settlementData');
         const list = document.getElementById('itemList');
         list.innerHTML = ""; 
-        if (savedData && JSON.parse(savedData).length > 0) { JSON.parse(savedData).forEach((item) => renderItem(item)); } 
+        if (savedData && JSON.parse(savedData).length > 0) { 
+            JSON.parse(savedData).forEach((item, idx) => renderItemSummary(item, idx)); 
+        } 
         else { list.innerHTML = `<div class="empty-state"><div class="empty-icon">📝</div><div>아직 내역이 없습니다.<br>아래 버튼을 눌러 추가해주세요.</div></div>`; }
     }
 
-    function renderItem(data = null) {
+    // 목록에 표시될 요약 카드 렌더링
+    function renderItemSummary(data, index) {
         const list = document.getElementById('itemList');
         if (list.querySelector('.empty-state')) list.innerHTML = "";
-        const tempId = Date.now() + Math.random();
         const div = document.createElement('div');
-        div.className = `item-group ${data?.collapsed ? 'collapsed' : ''}`;
-        div.setAttribute('data-id', tempId);
+        div.className = 'item-group';
         
-        const myTeam = appConfig.teams.find(t => t.isMyTeam);
-        const otherTeams = appConfig.teams.filter(t => !t.isMyTeam);
-        
-        let payerOptionsHtml = otherTeams.map(t => `<label class="radio-item"><input type="radio" name="payer_${tempId}" value="${t.name}" ${data?.payer === t.name ? 'checked' : ''} onchange="updateHeader(this)">${t.name}</label>`).join('');
-        payerOptionsHtml += appConfig.members.map(m => `<label class="radio-item"><input type="radio" name="payer_${tempId}" value="${m}" ${data?.payer === m ? 'checked' : ''} onchange="updateHeader(this)">${m}</label>`).join('');
-        const teamCheckHtml = appConfig.teams.map(t => `<label class="check-item"><input type="checkbox" class="team-check" value="${t.id}" data-name="${t.name}" ${data?.teams?.[t.id] !== false ? 'checked' : ''} onchange="updateHeader(this)">${t.name}</label>`).join('');
+        const name = data.name || (index + 1) + "차";
+        const amt = data.amount || "0";
+        const payer = data.payer || "결제자 미선택";
+        const checkedTeams = appConfig.teams
+            .filter(t => data.teams[t.id] !== false)
+            .map(t => t.name.split('(')[0]);
+        const teamStr = checkedTeams.length > 0 ? checkedTeams.join(',') : "참여팀 없음";
 
         div.innerHTML = `
-            <button class="remove-btn" onclick="removeItem(this)">×</button>
-            <div class="item-header" onclick="toggleItem(this)">
-                <span style="font-weight:bold; font-size:0.9rem;" class="title-text">...</span>
-                <div class="sub-text"></div>
-            </div>
-            <div class="item-body">
-                <input type="text" placeholder="항목명 (예: 감자탕)" class="item-name" value="${data?.name || ''}" oninput="updateHeader(this)">
-                <input type="text" placeholder="결제 금액" class="item-amount" inputmode="numeric" value="${data?.amount || ''}" oninput="formatAmount(this); updateHeader(this)">
-                <span class="label-text">💳 누가 결제했나요? (필수)</span>
-                <div class="flex-group">${payerOptionsHtml}</div>
-                <span class="label-text">👥 참여한 팀 선택</span>
-                <div class="flex-group">${teamCheckHtml}</div>
-                <button class="save-btn" onclick="saveAndCollapse(this)">✔ 이 내역 저장 및 접기</button>
+            <button class="remove-btn" onclick="event.stopPropagation(); removeItem(${index})">×</button>
+            <div class="item-header" onclick="openItemModal(${index})">
+                <span style="font-weight:bold; font-size:0.9rem;" class="title-text">${name} (${amt}원)</span>
+                <div class="sub-text">
+                    <span class="info-label">💳</span> <span class="info-val">${payer}</span>
+                    <span class="divider">/</span>
+                    <span class="info-label">👥</span> <span class="info-val team-list">${teamStr}</span>
+                </div>
             </div>
         `;
         list.appendChild(div);
-        updateHeader(div.querySelector('.item-name'));
     }
 
-    // [수정] 헤더 정보를 한 줄로 통합 (결제자 / 참여팀)
-    function updateHeader(element) {
-        const g = element.closest('.item-group');
-        const nameInput = g.querySelector('.item-name').value;
-        const amt = g.querySelector('.item-amount').value || "0";
-        const payer = g.querySelector(`input[type="radio"]:checked`)?.parentElement.textContent || "결제자 미선택";
-        const checkedTeams = Array.from(g.querySelectorAll('.team-check:checked')).map(cb => {
-            const fullTeamName = cb.getAttribute('data-name');
-            return fullTeamName.split('(')[0]; // 가독성을 위해 괄호 앞 이름만 표시
-        });
+    // 모달 열기 (신규/수정 공용)
+    function openItemModal(index = -1) {
+        currentEditingIndex = index;
+        const modal = document.getElementById('itemModal');
+        const body = document.getElementById('itemModalBody');
+        const title = document.getElementById('itemModalTitle');
         
-        const allGroups = Array.from(document.querySelectorAll('.item-group'));
-        const index = allGroups.indexOf(g) + 1;
-        const finalName = nameInput || index + "차";
-        
-        g.querySelector('.title-text').innerText = `${finalName} (${amt}원)`;
-        
-        const teamStr = checkedTeams.length > 0 ? checkedTeams.join(',') : "참여팀 없음";
-        
-        // 한 줄로 배치
-        g.querySelector('.sub-text').innerHTML = `
-            <span class="info-label">💳</span> <span class="info-val">${payer}</span>
-            <span class="divider">/</span>
-            <span class="info-label">👥</span> <span class="info-val team-list">${teamStr}</span>
+        let data = { name: '', amount: '', payer: '', teams: {} };
+        if (index !== -1) {
+            const saved = JSON.parse(localStorage.getItem('settlementData'));
+            data = saved[index];
+            title.innerText = (index + 1) + "차 내역 수정";
+        } else {
+            title.innerText = "새로운 차수 추가";
+        }
+
+        const otherTeams = appConfig.teams.filter(t => !t.isMyTeam);
+        let payerOptionsHtml = otherTeams.map(t => `<label class="radio-item"><input type="radio" name="modalPayer" value="${t.name}" ${data.payer === t.name ? 'checked' : ''}>${t.name}</label>`).join('');
+        payerOptionsHtml += appConfig.members.map(m => `<label class="radio-item"><input type="radio" name="modalPayer" value="${m}" ${data.payer === m ? 'checked' : ''}>${m}</label>`).join('');
+        const teamCheckHtml = appConfig.teams.map(t => `<label class="check-item"><input type="checkbox" class="modal-team-check" value="${t.id}" ${data.teams[t.id] !== false ? 'checked' : ''}>${t.name}</label>`).join('');
+
+        body.innerHTML = `
+            <input type="text" placeholder="항목명 (예: 감자탕)" id="modalItemName" value="${data.name || ''}">
+            <input type="text" placeholder="결제 금액" id="modalItemAmount" inputmode="numeric" value="${data.amount || ''}" oninput="formatAmount(this)">
+            <span class="label-text">💳 누가 결제했나요? (필수)</span>
+            <div class="flex-group">${payerOptionsHtml}</div>
+            <span class="label-text">👥 참여한 팀 선택</span>
+            <div class="flex-group">${teamCheckHtml}</div>
         `;
-        saveToLocal();
+
+        modal.style.display = 'flex';
+    }
+
+    function closeItemModal() { document.getElementById('itemModal').style.display = 'none'; }
+
+    function saveItemFromModal() {
+        const name = document.getElementById('modalItemName').value;
+        const amount = document.getElementById('modalItemAmount').value;
+        const payer = document.querySelector('input[name="modalPayer"]:checked')?.parentElement.textContent || "";
+        
+        if (!amount || !payer) return alert("금액과 결제자를 모두 입력해주세요.");
+
+        const teamChecks = {};
+        document.querySelectorAll('.modal-team-check').forEach(cb => { teamChecks[cb.value] = cb.checked; });
+
+        const newItem = { name, amount, payer, teams: teamChecks };
+        let savedData = JSON.parse(localStorage.getItem('settlementData') || "[]");
+
+        if (currentEditingIndex === -1) {
+            savedData.push(newItem);
+        } else {
+            savedData[currentEditingIndex] = newItem;
+        }
+
+        localStorage.setItem('settlementData', JSON.stringify(savedData));
+        closeItemModal();
+        loadData();
+    }
+
+    function removeItem(index) {
+        if(confirm("삭제하시겠습니까?")) {
+            let savedData = JSON.parse(localStorage.getItem('settlementData') || "[]");
+            savedData.splice(index, 1);
+            localStorage.setItem('settlementData', JSON.stringify(savedData));
+            loadData();
+        }
     }
 
     function formatAmount(obj) { let value = obj.value.replace(/[^0-9]/g, ""); obj.value = value.replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
     
-    function addNewItem() {
-        const items = document.querySelectorAll('.item-group');
-        if (items.length > 0) {
-            const lastItem = items[items.length - 1];
-            const amt = lastItem.querySelector('.item-amount').value;
-            const payer = lastItem.querySelector('input[type="radio"]:checked');
-            
-            if (!amt || !payer) {
-                alert("현재 차수의 결제 금액과 결제자를 먼저 선택해주세요.");
-                lastItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                return;
-            }
-        }
-        renderItem();
-        setTimeout(() => {
-            const list = document.getElementById('itemList');
-            list.scrollTo({ top: list.scrollHeight, behavior: 'smooth' });
-        }, 50);
-    }
-
     function clearAllItems() { if(confirm("모든 정산 내역을 지우시겠습니까?\n(설정된 팀 정보는 유지됩니다)")) { localStorage.removeItem('settlementData'); document.getElementById('result').style.display = 'none'; document.getElementById('actionButtons').style.display = 'none'; loadData(); } }
-    function saveAndCollapse(btn) { btn.closest('.item-group').classList.add('collapsed'); saveToLocal(); }
-    function toggleItem(header) { header.closest('.item-group').classList.toggle('collapsed'); }
-    function removeItem(btn) { if(confirm("삭제하시겠습니까?")) { btn.closest('.item-group').remove(); saveToLocal(); if(document.querySelectorAll('.item-group').length === 0) loadData(); } }
     
-    function saveToLocal() {
-        const items = [];
-        document.querySelectorAll('.item-group').forEach(g => {
-            const tempId = g.getAttribute('data-id');
-            const teamChecks = {};
-            g.querySelectorAll('.team-check').forEach(cb => { teamChecks[cb.value] = cb.checked; });
-            items.push({
-                name: g.querySelector('.item-name').value,
-                amount: g.querySelector('.item-amount').value,
-                payer: g.querySelector(`input[name="payer_${tempId}"]:checked`)?.parentElement.textContent || "",
-                teams: teamChecks,
-                collapsed: g.classList.contains('collapsed')
-            });
-        });
-        localStorage.setItem('settlementData', JSON.stringify(items));
-    }
+    // 이 함수는 이전 버전 호환 및 데이터 보존을 위해 남겨두지만 실제 동작은 saveItemFromModal에서 처리함
+    function saveToLocal() { /* loadData와 saveItemFromModal에서 통합 관리됨 */ }
 
     function applyTruncate(amount) {
         const unit = appConfig.truncationUnit || 1;
@@ -350,7 +362,6 @@
     }
 
     function calculate() {
-        saveToLocal();
         const items = JSON.parse(localStorage.getItem('settlementData') || "[]");
         if(items.length === 0) return alert("정산할 내역이 없습니다.");
         const invalid = items.find(i => !i.payer || !i.amount || i.amount === "0");
