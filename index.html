@@ -3,59 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>팀 정산 어플 (Final V33.3)</title>
+    <title>팀 정산 어플 (Final V33.4)</title>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <style>
-        /* [Update: 2026-02-17-v33.3] 새 차수 추가 시 자동 스크롤 기능 추가 */
+        /* [Update: 2026-02-17-v33.4] 모든 기능 통합 및 정산 로직 복구 */
         :root { --primary: #4a90e2; --bg: #f2f4f7; --card-bg: #ffffff; --danger: #ff4d4f; --success: #28a745; --dark: #2d3436; --gray-border: #dfe6e9; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); padding: 10px; margin: 0; color: #333; -webkit-tap-highlight-color: transparent; }
         .container { max-width: 450px; margin: 0 auto; padding-bottom: 30px; }
         
         .app-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding: 10px 5px; }
         .app-title { font-size: 1.25rem; color: #333; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
-        .setting-btn { background: #e9ecef; border: none; padding: 7px 14px; border-radius: 20px; font-size: 0.85rem; cursor: pointer; color: #555; font-weight: 600; white-space: nowrap; transition: background 0.2s; }
-        .setting-btn:active { background: #dee2e6; color: #333; }
+        .setting-btn { background: #e9ecef; border: none; padding: 7px 14px; border-radius: 20px; font-size: 0.85rem; cursor: pointer; color: #555; font-weight: 600; }
 
         .card { background: var(--card-bg); padding: 15px; border-radius: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 12px; }
         
-        /* 항목 리스트 영역 */
         #itemList { max-height: 65vh; overflow-y: auto; padding-right: 4px; margin-bottom: 15px; scroll-behavior: smooth; min-height: 100px; }
         #itemList::-webkit-scrollbar { width: 5px; }
-        #itemList::-webkit-scrollbar-track { background: transparent; }
         #itemList::-webkit-scrollbar-thumb { background: #d1d8e0; border-radius: 10px; }
 
         .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 150px; color: #aaa; font-size: 0.9rem; text-align: center; }
-        .empty-icon { font-size: 2rem; margin-bottom: 8px; opacity: 0.5; }
-
-        .button-group { position: relative; z-index: 10; background: linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,1) 20%); padding-top: 10px; }
-
         .item-group { border: 1px solid #eee; border-radius: 12px; margin-bottom: 10px; overflow: hidden; background: #fff; position: relative; transition: all 0.3s ease; }
-        .item-group.collapsed { border-left: 6px solid var(--success); background: #fafbfc; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        .item-group.collapsed .title-text::before { content: "✔"; color: var(--success); margin-right: 6px; font-weight: bold; }
+        .item-group.collapsed { border-left: 6px solid var(--success); background: #fafbfc; }
         .item-header { padding: 12px 45px 12px 15px; cursor: pointer; display: flex; flex-direction: column; gap: 4px; }
-        .sub-text { font-size: 0.75rem; color: #666; line-height: 1.4; }
-        .info-row { display: flex; align-items: flex-start; gap: 4px; margin-bottom: 2px; }
-        .info-label { font-weight: bold; color: #888; white-space: nowrap; }
-        .info-val { color: #333; font-weight: 500; word-break: break-all; }
+        .sub-text { font-size: 0.75rem; color: #666; }
+        .info-label { font-weight: bold; color: #888; }
         .info-val.team-list { color: var(--primary); }
         .item-body { padding: 15px; border-top: 1px solid #eee; background: #fdfdfd; }
         .collapsed .item-body { display: none; }
         
-        .remove-btn { position: absolute; right: 5px; top: 8px; background: #f1f3f5; color: #adb5bd; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; border: none; z-index: 5; cursor: pointer; }
-        .remove-btn:active { background: #dee2e6; color: #ff4d4f; }
+        .remove-btn { position: absolute; right: 5px; top: 8px; background: #f1f3f5; color: #adb5bd; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: none; z-index: 5; }
 
         input[type="text"] { width: 100%; padding: 12px; margin: 5px 0; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 0.95rem; }
         .label-text { font-size: 0.8rem; font-weight: bold; margin-top: 12px; margin-bottom: 6px; display: block; color: #555; }
         .flex-group { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
-        .radio-item, .check-item { flex: 1; min-width: 70px; font-size: 0.8rem; background: #fff; border: 1px solid var(--gray-border); padding: 12px 5px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; text-align: center; transition: all 0.2s; color: #888; font-weight: 500; }
+        .radio-item, .check-item { flex: 1; min-width: 70px; font-size: 0.8rem; background: #fff; border: 1px solid var(--gray-border); padding: 12px 5px; border-radius: 10px; cursor: pointer; text-align: center; color: #888; }
         .radio-item input, .check-item input { display: none; }
-        .radio-item:has(input:checked), .check-item:has(input:checked) { background: var(--primary); color: #fff; border-color: var(--primary); font-weight: bold; box-shadow: 0 4px 8px rgba(74, 144, 226, 0.3); transform: scale(1.02); }
+        .radio-item:has(input:checked), .check-item:has(input:checked) { background: var(--primary); color: #fff; border-color: var(--primary); font-weight: bold; }
         
-        button { width: 100%; padding: 14px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 1rem; }
-        .save-btn { background: var(--success); color: white; margin-top: 15px; padding: 12px; font-size: 0.9rem; }
+        button { width: 100%; padding: 14px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; }
+        .save-btn { background: var(--success); color: white; margin-top: 15px; }
         .add-btn { background: #495057; color: white; margin-bottom: 8px; }
-        .clear-btn { background: #f1f3f5; color: #adb5bd; margin-bottom: 8px; padding: 10px; font-size: 0.8rem; }
-        .calc-btn { background: var(--primary); color: white; margin-top: 5px; box-shadow: 0 4px 15px rgba(74, 144, 226, 0.3); }
+        .clear-btn { background: #f1f3f5; color: #adb5bd; margin-bottom: 8px; font-size: 0.8rem; }
+        .calc-btn { background: var(--primary); color: white; margin-top: 5px; }
         .image-btn { background: #6c5ce7; color: white; margin-top: 15px; }
 
         .result-box { background: var(--dark); color: #fff; padding: 20px; border-radius: 18px; display: none; margin-top: 15px; }
@@ -67,13 +56,14 @@
         .text-green { color: #2ecc71; font-weight: bold; }
         
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; display: none; align-items: center; justify-content: center; }
-        .modal-card { background: #fff; width: 90%; max-width: 400px; padding: 20px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); max-height: 80vh; overflow-y: auto; }
+        .modal-card { background: #fff; width: 90%; max-width: 400px; padding: 20px; border-radius: 16px; max-height: 80vh; overflow-y: auto; }
         
         .settle-card { background: rgba(255,255,255,0.08); border-radius: 10px; padding: 12px; margin-bottom: 8px; border-left: 4px solid; }
-        .status-table { width: 100%; font-size: 0.75rem; margin-bottom: 15px; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 10px; color: #ccc; box-sizing: border-box; }
-        .status-header, .status-row { display: flex; align-items: center; justify-content: space-between; width: 100%; }
-        .col-name { width: 20%; text-align: left; color: #fff; font-weight: bold; }
-        .col-result { width: 30%; text-align: right; font-weight: bold; }
+        .settle-card.send { border-color: var(--danger); }
+        .settle-card.keep { border-color: var(--success); }
+        .status-table { width: 100%; font-size: 0.75rem; margin-bottom: 15px; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 10px; color: #ccc; }
+        .status-row { display: flex; justify-content: space-between; border-bottom: 1px dashed #555; padding: 4px 0; }
+        .col-name { font-weight: bold; color: #fff; }
     </style>
 </head>
 <body>
@@ -95,7 +85,7 @@
 
     <div id="captureArea">
         <div id="result" class="result-box card">
-            <h3 style="color:white; margin-top:0; text-align:center; font-size:1.1rem;">📊 최종 정산 리포트</h3>
+            <h3 style="color:white; margin-top:0; text-align:center;">📊 최종 정산 리포트</h3>
             <div id="reportHeader"></div>
             <div id="reportGuide"></div>
             <div id="privateSection"></div>
@@ -110,17 +100,19 @@
 <div id="settingsModal" class="modal-overlay">
     <div class="modal-card">
         <h3 style="margin-top:0;">⚙️ 설정 관리</h3>
+        <span class="label-text">👥 팀 관리</span>
         <div id="teamSettingList"></div>
-        <button class="add-small-btn" onclick="addTeamInput()" style="margin-bottom:15px;">+ 팀 추가</button>
+        <button onclick="addTeamInput()" style="background:#eee; padding:8px; margin-top:5px;">+ 팀 추가</button>
+        <span class="label-text">👤 우리 팀원</span>
         <div id="memberSettingList"></div>
-        <button class="add-small-btn" onclick="addMemberInput()" style="margin-bottom:15px;">+ 팀원 추가</button>
-        <div id="truncOptions"></div>
-        <button class="modal-close-btn" onclick="saveSettings()" style="background:#333; color:#fff; margin-top:10px;">저장하고 닫기</button>
+        <button onclick="addMemberInput()" style="background:#eee; padding:8px; margin-top:5px;">+ 팀원 추가</button>
+        <span class="label-text">💰 절사 단위</span>
+        <div id="truncOptions" class="flex-group"></div>
+        <button onclick="saveSettings()" style="background:var(--dark); color:#fff; margin-top:20px;">저장하고 닫기</button>
     </div>
 </div>
 
 <script>
-    // [기본 설정 데이터]
     const defaultConfig = {
         teams: [
             { id: 'teamA', name: "A팀(의성,지혜)", isMyTeam: false },
@@ -139,10 +131,10 @@
         const savedData = localStorage.getItem('settlementData');
         const list = document.getElementById('itemList');
         list.innerHTML = ""; 
-        if (savedData && JSON.parse(savedData).length > 0) { 
-            JSON.parse(savedData).forEach((item) => renderItem(item)); 
-        } else { 
-            list.innerHTML = `<div class="empty-state"><div class="empty-icon">📝</div><div>아직 내역이 없습니다.</div></div>`; 
+        if (savedData && JSON.parse(savedData).length > 0) {
+            JSON.parse(savedData).forEach((item) => renderItem(item));
+        } else {
+            list.innerHTML = `<div class="empty-state">📝 내역을 추가해 주세요.</div>`;
         }
     }
 
@@ -155,119 +147,181 @@
         div.setAttribute('data-id', tempId);
         
         const otherTeams = appConfig.teams.filter(t => !t.isMyTeam);
-        let payerOptionsHtml = otherTeams.map(t => `<label class="radio-item"><input type="radio" name="payer_${tempId}" value="${t.name}" ${data?.payer === t.name ? 'checked' : ''} onchange="updateHeader(this)">${t.name}</label>`).join('');
-        payerOptionsHtml += appConfig.members.map(m => `<label class="radio-item"><input type="radio" name="payer_${tempId}" value="${m}" ${data?.payer === m ? 'checked' : ''} onchange="updateHeader(this)">${m}</label>`).join('');
-        const teamCheckHtml = appConfig.teams.map(t => `<label class="check-item"><input type="checkbox" class="team-check" value="${t.id}" data-name="${t.name}" ${data?.teams?.[t.id] !== false ? 'checked' : ''} onchange="updateHeader(this)">${t.name}</label>`).join('');
+        let payerHtml = otherTeams.map(t => `<label class="radio-item"><input type="radio" name="payer_${tempId}" value="${t.name}" ${data?.payer === t.name ? 'checked' : ''} onchange="updateHeader(this)">${t.name}</label>`).join('');
+        payerHtml += appConfig.members.map(m => `<label class="radio-item"><input type="radio" name="payer_${tempId}" value="${m}" ${data?.payer === m ? 'checked' : ''} onchange="updateHeader(this)">${m}</label>`).join('');
+        const teamsHtml = appConfig.teams.map(t => `<label class="check-item"><input type="checkbox" class="team-check" value="${t.id}" data-name="${t.name}" ${data?.teams?.[t.id] !== false ? 'checked' : ''} onchange="updateHeader(this)">${t.name}</label>`).join('');
 
         div.innerHTML = `
             <button class="remove-btn" onclick="removeItem(this)">×</button>
             <div class="item-header" onclick="toggleItem(this)">
-                <span style="font-weight:bold; font-size:0.9rem;" class="title-text">...</span>
+                <span class="title-text" style="font-weight:bold;">차수 정보 입력</span>
                 <div class="sub-text"></div>
             </div>
             <div class="item-body">
-                <input type="text" placeholder="항목명 (예: 1차 점심)" class="item-name" value="${data?.name || ''}" oninput="updateHeader(this)">
+                <input type="text" placeholder="항목명 (예: 점심)" class="item-name" value="${data?.name || ''}" oninput="updateHeader(this)">
                 <input type="text" placeholder="결제 금액" class="item-amount" inputmode="numeric" value="${data?.amount || ''}" oninput="formatAmount(this); updateHeader(this)">
-                <span class="label-text">💳 결제자 선택</span>
-                <div class="flex-group">${payerOptionsHtml}</div>
-                <span class="label-text">👥 참여팀 선택</span>
-                <div class="flex-group">${teamCheckHtml}</div>
+                <span class="label-text">💳 결제자</span>
+                <div class="flex-group">${payerHtml}</div>
+                <span class="label-text">👥 참여팀</span>
+                <div class="flex-group">${teamsHtml}</div>
                 <button class="save-btn" onclick="saveAndCollapse(this)">✔ 저장 및 접기</button>
-            </div>
-        `;
+            </div>`;
         list.appendChild(div);
         updateHeader(div.querySelector('.item-name'));
-        return div; // 생성된 요소 반환
+        return div;
     }
 
-    // [V33.3 핵심 기능] 새로운 차수 추가 및 자동 스크롤
+    // [V33.4] 빈 항목 체크 + 자동 스크롤
     function addNewItem() {
         const items = document.querySelectorAll('.item-group');
         if (items.length > 0) {
-            const lastItem = items[items.length - 1];
-            const amountInput = lastItem.querySelector('.item-amount').value.trim();
-            const payerChecked = lastItem.querySelector(`input[type="radio"]:checked`);
-
-            if (!amountInput || amountInput === "0" || !payerChecked) {
-                alert("현재 차수의 정보를 먼저 입력해주세요.");
-                lastItem.classList.remove('collapsed');
-                lastItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            const last = items[items.length - 1];
+            const amt = last.querySelector('.item-amount').value;
+            const pyr = last.querySelector(`input[type="radio"]:checked`);
+            if (!amt || amt === "0" || !pyr) {
+                alert("이전 차수의 금액과 결제자를 먼저 입력해주세요.");
+                last.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 return;
             }
         }
-        
-        // 항목 렌더링 후 스크롤 이동
         const newItem = renderItem();
         setTimeout(() => {
             newItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }, 100);
     }
 
-    // 나머지 유틸리티 함수 (updateHeader, formatAmount, calculate 등은 이전 버전 유지)
-    function updateHeader(element) {
-        const g = element.closest('.item-group');
-        const nameInput = g.querySelector('.item-name').value;
+    function updateHeader(el) {
+        const g = el.closest('.item-group');
+        const name = g.querySelector('.item-name').value || "정산 항목";
         const amt = g.querySelector('.item-amount').value || "0";
         const payer = g.querySelector(`input[type="radio"]:checked`)?.parentElement.textContent || "미선택";
-        const checkedTeams = Array.from(g.querySelectorAll('.team-check:checked')).map(cb => cb.getAttribute('data-name'));
-        const allGroups = Array.from(document.querySelectorAll('.item-group'));
-        const index = allGroups.indexOf(g) + 1;
-        const finalName = nameInput || index + "차";
-        g.querySelector('.title-text').innerText = `${finalName} (${amt}원)`;
-        const teamStr = checkedTeams.length > 0 ? checkedTeams.join(', ') : "없음";
-        g.querySelector('.sub-text').innerHTML = `<div class="info-row"><span class="info-label">💳:</span> <span class="info-val">${payer}</span> | <span class="info-label">👥:</span> <span class="info-val team-list">${teamStr}</span></div>`;
+        const teams = Array.from(g.querySelectorAll('.team-check:checked')).map(cb => cb.getAttribute('data-name')).join(', ');
+        g.querySelector('.title-text').innerText = `${name} (${amt}원)`;
+        g.querySelector('.sub-text').innerHTML = `💳 ${payer} | 👥 ${teams || '없음'}`;
         saveToLocal();
     }
 
-    function formatAmount(obj) { let value = obj.value.replace(/[^0-9]/g, ""); obj.value = value.replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
-    function saveAndCollapse(btn) { btn.closest('.item-group').classList.add('collapsed'); saveToLocal(); }
-    function toggleItem(header) { header.closest('.item-group').classList.toggle('collapsed'); }
-    function removeItem(btn) { if(confirm("삭제할까요?")) { btn.closest('.item-group').remove(); saveToLocal(); if(document.querySelectorAll('.item-group').length === 0) loadData(); } }
+    function formatAmount(o) { let v = o.value.replace(/[^0-9]/g, ""); o.value = v.replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
+    function saveAndCollapse(b) { b.closest('.item-group').classList.add('collapsed'); saveToLocal(); }
+    function toggleItem(h) { h.closest('.item-group').classList.toggle('collapsed'); }
+    function removeItem(b) { if(confirm("삭제할까요?")) { b.closest('.item-group').remove(); saveToLocal(); if(document.querySelectorAll('.item-group').length===0) loadData(); } }
     function clearAllItems() { if(confirm("초기화할까요?")) { localStorage.removeItem('settlementData'); location.reload(); } }
-    
+
     function saveToLocal() {
         const items = [];
         document.querySelectorAll('.item-group').forEach(g => {
-            const tempId = g.getAttribute('data-id');
-            const teamChecks = {};
-            g.querySelectorAll('.team-check').forEach(cb => { teamChecks[cb.value] = cb.checked; });
+            const tid = g.getAttribute('data-id');
+            const tcs = {};
+            g.querySelectorAll('.team-check').forEach(cb => { tcs[cb.value] = cb.checked; });
             items.push({
-                tempId: tempId,
+                tempId: tid,
                 name: g.querySelector('.item-name').value,
                 amount: g.querySelector('.item-amount').value,
-                payer: g.querySelector(`input[name="payer_${tempId}"]:checked`)?.parentElement.textContent || "",
-                teams: teamChecks,
+                payer: g.querySelector(`input[name="payer_${tid}"]:checked`)?.parentElement.textContent || "",
+                teams: tcs,
                 collapsed: g.classList.contains('collapsed')
             });
         });
         localStorage.setItem('settlementData', JSON.stringify(items));
     }
 
-    // 설정 관련 함수 (생략)
-    function openSettings() { document.getElementById('settingsModal').style.display = 'flex'; renderSettingsUI(); }
-    function saveSettings() { localStorage.setItem('appConfig', JSON.stringify(appConfig)); location.reload(); }
-
-    // 정산 로직 및 이미지 저장 (V33.2와 동일하므로 작동을 위해 포함됨)
+    // [복구된 정산 로직]
     function calculate() {
         saveToLocal();
         const items = JSON.parse(localStorage.getItem('settlementData') || "[]");
         if(items.length === 0) return alert("내역이 없습니다.");
-        // (이하 정산 로직 V33.2와 동일...)
-        alert("정산 리포트가 생성되었습니다. 아래로 내려 확인하세요!");
+        
+        let total = 0;
+        let teamPaid = {}; let teamSpent = {}; let memberPaid = {};
+        appConfig.teams.forEach(t => { teamPaid[t.id] = 0; teamSpent[t.id] = 0; });
+        appConfig.members.forEach(m => { memberPaid[m] = 0; });
+
+        let tableHtml = `<table class="report-table"><tr><th>항목</th><th>결제</th><th>참여팀</th><th style="text-align:right;">금액</th></tr>`;
+        const myTeam = appConfig.teams.find(t => t.isMyTeam);
+
+        items.forEach((item, idx) => {
+            const amt = Number(item.amount.replace(/,/g,''));
+            total += amt;
+            const activeTeamNames = appConfig.teams.filter(t => item.teams[t.id]).map(t => t.name.split('(')[0]).join(', ');
+            
+            tableHtml += `<tr><td>${item.name || (idx+1)+'차'}</td><td>${item.payer}</td><td style="font-size:0.6rem; color:#aaa;">${activeTeamNames}</td><td style="text-align:right;">${amt.toLocaleString()}원</td></tr>`;
+
+            if (appConfig.members.includes(item.payer)) {
+                teamPaid[myTeam.id] += amt; memberPaid[item.payer] += amt;
+            } else {
+                const pt = appConfig.teams.find(t => t.name === item.payer);
+                if (pt) teamPaid[pt.id] += amt;
+            }
+
+            const activeTeams = Object.keys(item.teams).filter(tid => item.teams[tid]);
+            if (activeTeams.length > 0) {
+                const per = amt / activeTeams.length;
+                activeTeams.forEach(tid => { teamSpent[tid] += per; });
+            }
+        });
+        tableHtml += `</table>`;
+
+        // 송금 가이드 계산
+        const truncate = (val) => Math.floor(Math.round(val) / appConfig.truncationUnit) * appConfig.truncationUnit;
+        let diffs = appConfig.teams.map(t => ({ id: t.id, name: t.name, balance: teamPaid[t.id] - teamSpent[t.id] }));
+        let guideMsg = "";
+        
+        let debtors = diffs.filter(d => d.balance < -1).sort((a,b) => a.balance - b.balance);
+        let creditors = diffs.filter(d => d.balance > 1).sort((a,b) => b.balance - a.balance);
+
+        debtors.forEach(debtor => {
+            let debt = Math.abs(debtor.balance);
+            creditors.forEach(creditor => {
+                if (debt <= 0 || creditor.balance <= 0) return;
+                let trade = Math.min(debt, creditor.balance);
+                guideMsg += `<div class="guide-container" style="margin-bottom:10px;"><span style="color:#f39c12; font-weight:bold;">💰 ${debtor.name} → ${creditor.name}</span><br><span style="font-size:0.9rem;">${truncate(trade).toLocaleString()}원</span></div>`;
+                debt -= trade; creditor.balance -= trade;
+            });
+        });
+
+        document.getElementById('reportHeader').innerHTML = tableHtml + `<div style="text-align:right; color:#f39c12; font-weight:bold; margin-top:5px;">총액: ${total.toLocaleString()}원</div>`;
+        document.getElementById('reportGuide').innerHTML = `<hr style="border-color:#444;"><div style="font-size:0.8rem; color:#aaa; margin-bottom:10px;">📍 팀별 송금 가이드</div>${guideMsg || '정산 금액 없음'}`;
+        
+        // 내부 정산 섹션
+        const perMember = teamSpent[myTeam.id] / appConfig.members.length;
+        let statusHtml = "";
+        let mBalances = {};
+        appConfig.members.forEach(m => {
+            const bal = memberPaid[m] - perMember;
+            mBalances[m] = bal;
+            statusHtml += `<div class="status-row"><span>${m}</span><span>${truncate(bal).toLocaleString()}원</span></div>`;
+        });
+        
+        document.getElementById('privateSection').innerHTML = `<hr style="border-color:#444;"><div style="font-size:0.8rem; color:#aaa; margin-bottom:10px;">📍 우리팀 내부 정산</div><div class="status-table">${statusHtml}</div>`;
+        
         document.getElementById('result').style.display = 'block';
         document.getElementById('actionButtons').style.display = 'block';
         document.getElementById('result').scrollIntoView({ behavior: 'smooth' });
     }
 
+    // 설정창 및 이미지 저장
+    function openSettings() { document.getElementById('settingsModal').style.display = 'flex'; renderSettingsUI(); }
+    function renderSettingsUI() {
+        const tl = document.getElementById('teamSettingList'); tl.innerHTML = "";
+        appConfig.teams.forEach((t, i) => {
+            tl.innerHTML += `<div style="display:flex; gap:5px; margin-bottom:5px;"><input type="radio" name="mt" ${t.isMyTeam?'checked':''} onclick="appConfig.teams.forEach((x,j)=>x.isMyTeam=(i===j))"><input type="text" value="${t.name}" onchange="appConfig.teams[${i}].name=this.value" style="flex:1;"></div>`;
+        });
+        const ml = document.getElementById('memberSettingList'); ml.innerHTML = "";
+        appConfig.members.forEach((m, i) => {
+            ml.innerHTML += `<div style="display:flex; gap:5px; margin-bottom:5px;"><input type="text" value="${m}" onchange="appConfig.members[${i}]=this.value" style="flex:1;"></div>`;
+        });
+        const tr = document.getElementById('truncOptions');
+        tr.innerHTML = [1, 10, 100].map(u => `<label class="radio-item"><input type="radio" name="tr" onclick="appConfig.truncationUnit=${u}" ${appConfig.truncationUnit===u?'checked':''}>${u}원</label>`).join('');
+    }
+    function saveSettings() { localStorage.setItem('appConfig', JSON.stringify(appConfig)); location.reload(); }
+    function addTeamInput() { appConfig.teams.push({id:'t'+Date.now(), name:'새 팀', isMyTeam:false}); renderSettingsUI(); }
+    function addMemberInput() { appConfig.members.push('새 멤버'); renderSettingsUI(); }
+    
     function saveAsImage() {
-        const privateSection = document.getElementById('privateSection');
-        privateSection.style.display = 'none';
+        const ps = document.getElementById('privateSection'); ps.style.display = 'none';
         html2canvas(document.getElementById('captureArea')).then(canvas => {
-            const link = document.createElement('a');
-            link.download = `정산리포트.png`;
-            link.href = canvas.toDataURL();
-            link.click();
-            privateSection.style.display = 'block';
+            const a = document.createElement('a'); a.download = '정산리포트.png'; a.href = canvas.toDataURL(); a.click();
+            ps.style.display = 'block';
         });
     }
 </script>
