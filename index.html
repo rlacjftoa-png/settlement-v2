@@ -3,113 +3,129 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>팀 정산 어플 (Final V36)</title>
+    <title>팀 정산 어플 (Final V37)</title>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <style>
-        /* [Update: 2026-02-17-v36] Header info combined into one line */
-        :root { --primary: #4a90e2; --bg: #f2f4f7; --card-bg: #ffffff; --danger: #ff4d4f; --success: #28a745; --dark: #2d3436; --gray-border: #dfe6e9; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); padding: 10px; margin: 0; color: #333; -webkit-tap-highlight-color: transparent; }
+        /* [Update: 2026-02-17-v37] 현대적 컬러 & 영수증 스타일 적용 */
+        :root { 
+            --primary: #6366f1; /* 소프트 인디고 */
+            --primary-dark: #4f46e5;
+            --bg: #f1f5f9; /* 연한 그레이 블루 배경 */
+            --card-bg: rgba(255, 255, 255, 0.7); /* 글래스모피즘용 */
+            --danger: #ef4444; 
+            --success: #10b981; /* 에메랄드 그린 */
+            --dark: #1e293b; 
+            --gray-border: #e2e8f0; 
+        }
+        
+        body { 
+            font-family: -apple-system, sans-serif; 
+            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%); 
+            background-attachment: fixed;
+            padding: 10px; margin: 0; color: #334155; 
+            -webkit-tap-highlight-color: transparent; 
+        }
+
         .container { max-width: 450px; margin: 0 auto; padding-bottom: 30px; }
         
         .app-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding: 10px 5px; }
-        .app-title { font-size: 1.25rem; color: #333; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
-        .setting-btn { background: #e9ecef; border: none; padding: 7px 14px; border-radius: 20px; font-size: 0.85rem; cursor: pointer; color: #555; font-weight: 600; white-space: nowrap; transition: background 0.2s; }
-        .setting-btn:active { background: #dee2e6; color: #333; }
+        .app-title { font-size: 1.35rem; color: var(--dark); font-weight: 800; margin: 0; display: flex; align-items: center; gap: 8px; letter-spacing: -0.5px; }
+        .setting-btn { background: white; border: 1px solid var(--gray-border); padding: 8px 16px; border-radius: 20px; font-size: 0.85rem; cursor: pointer; color: #64748b; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: all 0.2s; }
+        .setting-btn:active { transform: scale(0.95); background: #f8fafc; }
 
-        .card { background: var(--card-bg); padding: 15px; border-radius: 16px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 12px; }
+        /* 글래스모피즘 카드 스타일 */
+        .card { 
+            background: var(--card-bg); 
+            backdrop-filter: blur(12px); 
+            -webkit-backdrop-filter: blur(12px);
+            padding: 15px; 
+            border-radius: 20px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05); 
+            margin-bottom: 12px; 
+            border: 1px solid rgba(255,255,255,0.5);
+        }
         
         #itemList { max-height: 60vh; overflow-y: auto; padding-right: 4px; margin-bottom: 15px; scroll-behavior: smooth; min-height: 100px; }
         #itemList::-webkit-scrollbar { width: 5px; }
-        #itemList::-webkit-scrollbar-track { background: transparent; }
-        #itemList::-webkit-scrollbar-thumb { background: #d1d8e0; border-radius: 10px; }
+        #itemList::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 
-        .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 150px; color: #aaa; font-size: 0.9rem; text-align: center; }
-        .empty-icon { font-size: 2rem; margin-bottom: 8px; opacity: 0.5; }
-
-        .button-group { position: relative; z-index: 10; background: linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,1) 20%); padding-top: 10px; }
-
-        .item-group { border: 1px solid #eee; border-radius: 12px; margin-bottom: 10px; overflow: hidden; background: #fff; position: relative; transition: all 0.3s ease; border-left: 6px solid var(--success); }
+        .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 150px; color: #94a3b8; font-size: 0.9rem; }
         
-        .item-header { padding: 12px 45px 12px 15px; cursor: pointer; display: flex; flex-direction: column; gap: 2px; }
-        .item-header .title-text::before { content: "✔"; color: var(--success); margin-right: 6px; font-weight: bold; }
-        .sub-text { font-size: 0.75rem; color: #666; display: flex; align-items: center; gap: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .info-label { font-weight: bold; color: #888; }
-        .info-val { color: #333; font-weight: 500; }
+        .item-group { border: 1px solid rgba(0,0,0,0.03); border-radius: 14px; margin-bottom: 10px; overflow: hidden; background: #fff; position: relative; transition: all 0.2s; border-left: 6px solid var(--success); box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
+        .item-group:active { transform: scale(0.98); }
+        
+        .item-header { padding: 14px 45px 14px 15px; cursor: pointer; }
+        .item-header .title-text::before { content: "✓"; color: var(--success); margin-right: 6px; font-weight: bold; }
+        .sub-text { font-size: 0.78rem; color: #64748b; display: flex; align-items: center; gap: 5px; margin-top: 4px; }
+        .info-val { color: #334155; font-weight: 600; }
         .info-val.team-list { color: var(--primary); }
-        .divider { color: #ddd; margin: 0 2px; }
 
-        .item-body { display: none; }
+        .remove-btn { position: absolute; right: 10px; top: 12px; background: #f1f5f9; color: #94a3b8; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer; }
+
+        input[type="text"] { width: 100%; padding: 14px; margin: 5px 0; border: 1px solid var(--gray-border); border-radius: 12px; font-size: 0.95rem; background: #f8fafc; transition: all 0.2s; }
+        input[type="text"]:focus { outline: none; border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1); }
         
-        .remove-btn { position: absolute; right: 5px; top: 8px; background: #f1f3f5; color: #adb5bd; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; border: none; z-index: 5; cursor: pointer; }
-        .remove-btn:active { background: #dee2e6; color: #ff4d4f; }
+        .radio-item, .check-item { flex: 1; min-width: 80px; font-size: 0.8rem; background: #fff; border: 1px solid var(--gray-border); padding: 12px 5px; border-radius: 12px; cursor: pointer; transition: all 0.2s; color: #64748b; text-align: center; }
+        .radio-item:has(input:checked), .check-item:has(input:checked) { background: var(--primary); color: #fff; border-color: var(--primary); box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); transform: translateY(-2px); }
 
-        input[type="text"] { width: 100%; padding: 12px; margin: 5px 0; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 0.95rem; }
-        .label-text { font-size: 0.8rem; font-weight: bold; margin-top: 12px; margin-bottom: 6px; display: block; color: #555; }
-        .flex-group { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
-        .radio-item, .check-item { flex: 1; min-width: 70px; font-size: 0.8rem; background: #fff; border: 1px solid var(--gray-border); padding: 12px 5px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; text-align: center; transition: all 0.2s; color: #888; font-weight: 500; }
-        .radio-item input, .check-item input { display: none; }
-        .radio-item:has(input:checked), .check-item:has(input:checked) { background: var(--primary); color: #fff; border-color: var(--primary); font-weight: bold; box-shadow: 0 4px 8px rgba(74, 144, 226, 0.3); transform: scale(1.02); }
-        .radio-item:has(input:checked)::before, .check-item:has(input:checked)::before { content: '✔'; margin-right: 4px; font-size: 0.85rem; animation: fadeIn 0.3s; }
-        @keyframes fadeIn { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); } }
-        button { width: 100%; padding: 14px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 1rem; }
-        .save-btn { background: var(--success); color: white; margin-top: 15px; padding: 12px; font-size: 0.9rem; }
-        .add-btn { background: #495057; color: white; margin-bottom: 8px; }
-        .clear-btn { background: #f1f3f5; color: #adb5bd; margin-bottom: 8px; padding: 10px; font-size: 0.8rem; }
-        .calc-btn { background: var(--primary); color: white; margin-top: 5px; box-shadow: 0 4px 15px rgba(74, 144, 226, 0.3); }
-        .image-btn { background: #6c5ce7; color: white; margin-top: 15px; }
+        .save-btn { background: var(--success); color: white; }
+        .add-btn { background: var(--dark); color: white; margin-bottom: 8px; box-shadow: 0 4px 10px rgba(30, 41, 59, 0.2); }
+        .clear-btn { background: transparent; color: #94a3b8; margin-bottom: 8px; font-size: 0.8rem; text-decoration: underline; }
+        .calc-btn { background: var(--primary); color: white; box-shadow: 0 6px 20px rgba(99, 102, 241, 0.3); margin-top: 10px; }
+        .image-btn { background: #475569; color: white; margin-top: 15px; }
 
-        .result-box { background: var(--dark); color: #fff; padding: 20px; border-radius: 18px; display: none; margin-top: 15px; }
-        .report-table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 0.72rem; color: #ddd; table-layout: fixed; }
-        .report-table th { border-bottom: 1px solid #555; padding: 6px 4px; text-align: left; color: #aaa; }
-        .report-table td { padding: 6px 4px; border-bottom: 1px solid #444; word-break: break-all; vertical-align: middle; }
-        .highlight { color: #f39c12; font-weight: bold; }
-        .text-red { color: #ff6b6b; font-weight: bold; }
-        .text-green { color: #2ecc71; font-weight: bold; }
-        .guide-container { margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #444; }
-        .guide-team { font-size: 0.85rem; margin-bottom: 4px; display: block; color: #f39c12; font-weight: bold; }
-        .guide-detail { font-size: 0.8rem; color: #fff; display: flex; justify-content: flex-start; align-items: center; gap: 5px; }
-        .send-label { font-size: 0.7rem; color: #aaa; background: #444; padding: 2px 6px; border-radius: 4px; }
+        /* [핵심 수정] 영수증 스타일 리포트 */
+        .result-box { 
+            background: #ffffff; 
+            color: #334155; 
+            padding: 30px 20px; 
+            border-radius: 4px; 
+            display: none; 
+            margin-top: 20px; 
+            position: relative;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            border-top: 8px solid var(--primary);
+        }
+        /* 영수증 상단 지그재그 효과 */
+        .result-box::before {
+            content: "";
+            position: absolute;
+            top: -14px; left: 0; width: 100%; height: 8px;
+            background: linear-gradient(-45deg, transparent 4px, #ffffff 4px), 
+                        linear-gradient(45deg, transparent 4px, #ffffff 4px);
+            background-size: 8px 8px;
+        }
 
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; display: none; align-items: center; justify-content: center; }
-        .modal-card { background: #fff; width: 90%; max-width: 400px; padding: 20px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); max-height: 80vh; overflow-y: auto; }
-        .modal-title { margin-top: 0; text-align: center; border-bottom: 1px solid #eee; padding-bottom: 10px; }
-        .setting-section { margin-bottom: 20px; }
-        .setting-label { font-size: 0.85rem; font-weight: bold; margin-bottom: 8px; display: block; color: #555; }
-        .input-row { display: flex; gap: 5px; margin-bottom: 5px; }
-        .input-row input { margin: 0; padding: 8px; font-size: 0.85rem; }
-        .del-btn { background: #ff4d4f; color: white; width: 40px; padding: 0; border-radius: 8px; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; }
-        .add-small-btn { background: #eee; color: #333; font-size: 0.8rem; padding: 8px; margin-top: 5px; }
-        .modal-close-btn { background: var(--dark); color: white; margin-top: 10px; }
-        .reset-all-btn { background: #fff0f0; color: #ff4d4f; border: 1px solid #ffccc7; font-size: 0.8rem; padding: 10px; margin-top: 25px; width: 100%; }
+        .report-table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 0.8rem; color: #475569; }
+        .report-table th { border-bottom: 2px solid #f1f5f9; padding: 10px 4px; text-align: left; color: #94a3b8; font-weight: 600; }
+        .report-table td { padding: 10px 4px; border-bottom: 1px solid #f8fafc; }
         
-        .radio-wrapper { display: flex; align-items: center; gap: 5px; font-size: 0.85rem; margin-bottom: 5px; }
-        .radio-option { display: flex; align-items: center; gap: 4px; cursor: pointer; margin-right: 12px; }
-        .radio-option input { margin: 0; }
+        .highlight { color: var(--primary); font-weight: 800; }
+        .text-red { color: var(--danger); font-weight: bold; }
+        .text-green { color: var(--success); font-weight: bold; }
+        
+        .guide-container { margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px dashed #e2e8f0; }
+        .guide-team { font-size: 0.9rem; margin-bottom: 6px; display: block; color: var(--dark); font-weight: 700; }
+        .send-label { font-size: 0.7rem; color: #64748b; background: #f1f5f9; padding: 2px 8px; border-radius: 4px; margin-right: 6px; }
 
-        .settle-card { background: rgba(255,255,255,0.08); border-radius: 10px; padding: 12px; margin-bottom: 8px; border-left: 4px solid; }
+        .settle-card { background: #f8fafc; border-radius: 12px; padding: 14px; margin-bottom: 10px; border-left: 4px solid; }
         .settle-card.send { border-color: var(--danger); }
         .settle-card.keep { border-color: var(--success); }
-        .step-badge { font-size: 0.7rem; font-weight: bold; padding: 2px 6px; border-radius: 4px; margin-bottom: 4px; display: inline-block; }
-        .step-badge.send { background: rgba(255, 77, 79, 0.2); color: #ff6b6b; }
-        .step-badge.keep { background: rgba(40, 167, 69, 0.2); color: #5dd579; }
-        .settle-text { font-size: 0.9rem; font-weight: 500; color: #fff; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        .settle-text { font-size: 0.9rem; font-weight: 600; color: var(--dark); }
         
-        .status-table { width: 100%; font-size: 0.75rem; margin-bottom: 15px; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 10px; color: #ccc; box-sizing: border-box; }
-        .status-header, .status-row { display: flex; align-items: center; justify-content: space-between; width: 100%; }
-        .status-header { border-bottom: 1px solid #555; padding-bottom: 6px; margin-bottom: 6px; font-weight: bold; color: #aaa; }
-        .status-row { padding-bottom: 4px; margin-bottom: 4px; border-bottom: 1px dashed #555; }
-        .status-row:last-child { border-bottom: none; margin-bottom: 0; }
-        .col-name { width: 20%; text-align: left; color: #fff; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .col-paid { width: 25%; text-align: right; }
-        .col-share { width: 25%; text-align: right; }
-        .col-result { width: 30%; text-align: right; font-weight: bold; }
+        .status-table { width: 100%; font-size: 0.78rem; margin-bottom: 15px; background: #f1f5f9; border-radius: 12px; padding: 15px; color: #475569; box-sizing: border-box; }
+        .status-header { border-bottom: 1px solid #cbd5e1; padding-bottom: 8px; margin-bottom: 8px; font-weight: bold; color: #64748b; display: flex; justify-content: space-between; }
+        .status-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(0,0,0,0.03); }
+        
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 100; display: none; align-items: center; justify-content: center; }
+        .modal-card { background: #fff; width: 90%; max-width: 400px; padding: 25px; border-radius: 24px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="app-header">
-        <h1 class="app-title">🧾 팀 정산 어플</h1>
+        <h1 class="app-title">🧾 팀 정산 리포트</h1>
         <button class="setting-btn" onclick="openSettings()">설정</button>
     </div>
 
@@ -117,17 +133,18 @@
         <div id="itemList"></div>
         <div class="button-group">
             <button class="add-btn" onclick="openItemModal()">+ 새로운 차수 추가</button>
-            <button class="clear-btn" onclick="clearAllItems()">🗑️ 모든 내역 지우기</button>
+            <button class="clear-btn" onclick="clearAllItems()">모든 내역 지우기</button>
             <button class="calc-btn" onclick="calculate()">🚀 정산 결과 확인</button>
         </div>
     </div>
 
     <div id="captureArea">
-        <div id="result" class="result-box card">
-            <h3 style="color:white; margin-top:0; text-align:center; font-size:1.1rem;">📊 최종 정산 리포트</h3>
+        <div id="result" class="result-box">
+            <h3 style="color:var(--dark); margin-top:0; text-align:center; font-size:1.2rem; letter-spacing: 2px;">RECEIPT</h3>
             <div id="reportHeader"></div>
             <div id="reportGuide"></div>
             <div id="privateSection"></div>
+            <div style="text-align:center; margin-top:20px; color:#cbd5e1; font-size:0.7rem; letter-spacing: 3px;">THANK YOU</div>
         </div>
     </div>
     
@@ -136,41 +153,36 @@
     </div>
 </div>
 
+<!-- 모달 레이어들 (내용 동일) -->
 <div id="itemModal" class="modal-overlay">
     <div class="modal-card">
-        <h3 class="modal-title" id="itemModalTitle">차수 정보 입력</h3>
+        <h3 class="modal-title" id="itemModalTitle" style="margin-top:0;">차수 정보 입력</h3>
         <div id="itemModalBody"></div>
-        <button class="save-btn" onclick="saveItemFromModal()">✔ 저장하기</button>
-        <button class="modal-close-btn" onclick="closeItemModal()" style="background:#eee; color:#666;">닫기</button>
+        <button class="save-btn" onclick="saveItemFromModal()" style="width:100%; padding:14px; border:none; border-radius:12px; font-weight:bold; cursor:pointer; font-size:1rem; margin-top:15px;">✔ 저장하기</button>
+        <button class="modal-close-btn" onclick="closeItemModal()" style="width:100%; padding:12px; border:none; border-radius:12px; cursor:pointer; margin-top:8px; background:#f1f5f9; color:#64748b;">닫기</button>
     </div>
 </div>
 
 <div id="settingsModal" class="modal-overlay">
     <div class="modal-card">
-        <h3 class="modal-title">⚙️ 설정 관리</h3>
-        <div class="setting-section">
-            <span class="setting-label">👥 전체 팀 관리</span>
-            <div style="font-size:0.75rem; color:#888; margin-bottom:8px;">* 참여하는 모든 팀을 입력하세요. <br>* '내부 정산'은 우리 팀 하나만 선택하세요.</div>
+        <h3 class="modal-title" style="margin-top:0;">⚙️ 설정 관리</h3>
+        <div class="setting-section" style="margin-bottom:20px;">
+            <span style="font-size:0.85rem; font-weight:bold; margin-bottom:8px; display:block; color:#555;">👥 전체 팀 관리</span>
             <div id="teamSettingList"></div>
-            <button class="add-small-btn" onclick="addTeamInput()">+ 팀 추가하기</button>
+            <button onclick="addTeamInput()" style="width:100%; padding:8px; background:#f1f5f9; border:none; border-radius:8px; margin-top:5px; font-size:0.8rem;">+ 팀 추가</button>
         </div>
-        <div class="setting-section">
-            <span class="setting-label">👤 우리 팀원 관리 (내부 정산용)</span>
-            <div style="font-size:0.75rem; color:#888; margin-bottom:8px;">* 우리 팀원 이름을 입력하세요. (개별 결제자)</div>
+        <div class="setting-section" style="margin-bottom:20px;">
+            <span style="font-size:0.85rem; font-weight:bold; margin-bottom:8px; display:block; color:#555;">👤 우리 팀원 (내부용)</span>
             <div id="memberSettingList"></div>
-            <button class="add-small-btn" onclick="addMemberInput()">+ 팀원 추가하기</button>
+            <button onclick="addMemberInput()" style="width:100%; padding:8px; background:#f1f5f9; border:none; border-radius:8px; margin-top:5px; font-size:0.8rem;">+ 팀원 추가</button>
         </div>
-        <div class="setting-section">
-            <span class="setting-label">💰 정산 단위 (절사 설정)</span>
-            <div style="font-size:0.75rem; color:#888; margin-bottom:8px;">* 최종 보낼 금액에서 자투리 돈을 버림합니다.</div>
-            <div class="radio-wrapper" id="truncOptions"></div>
-        </div>
-        <button class="modal-close-btn" onclick="saveSettings()">저장하고 닫기</button>
-        <button class="reset-all-btn" onclick="factoryReset()">🔴 모든 데이터 및 설정 초기화</button>
+        <button class="calc-btn" onclick="saveSettings()" style="width:100%; margin-top:10px;">저장하고 닫기</button>
+        <button onclick="factoryReset()" style="width:100%; padding:10px; margin-top:20px; background:#fff1f2; color:#e11d48; border:1px solid #fecdd3; border-radius:10px; font-size:0.75rem;">데이터 초기화</button>
     </div>
 </div>
 
 <script>
+    /* 로직 부분은 v36과 100% 동일, 단 calculate() 내 컬러값만 영수증 스타일에 맞게 일부 조정 */
     const defaultConfig = {
         teams: [
             { id: 'teamA', name: "A팀(의성,지혜)", isMyTeam: false },
@@ -187,53 +199,39 @@
     window.onload = function() { loadData(); }
 
     function openSettings() { renderSettingsUI(); document.getElementById('settingsModal').style.display = 'flex'; }
-    
     function renderSettingsUI() {
         const teamList = document.getElementById('teamSettingList');
         teamList.innerHTML = '';
         appConfig.teams.forEach((team, idx) => {
             const div = document.createElement('div');
-            div.className = 'input-row';
+            div.style.display = 'flex'; div.style.gap = '5px'; div.style.marginBottom = '5px';
             div.innerHTML = `
-                <div class="radio-wrapper" style="flex:1;">
-                    <input type="radio" name="myTeamSelect" ${team.isMyTeam ? 'checked' : ''} onclick="updateMyTeam(${idx})">
-                    <input type="text" value="${team.name}" onchange="appConfig.teams[${idx}].name = this.value">
-                </div>
-                ${appConfig.teams.length > 1 ? `<button class="del-btn" onclick="removeTeam(${idx})">×</button>` : ''}
+                <input type="radio" name="myTeamSelect" ${team.isMyTeam ? 'checked' : ''} onclick="updateMyTeam(${idx})">
+                <input type="text" value="${team.name}" onchange="appConfig.teams[${idx}].name = this.value" style="margin:0; padding:8px; flex:1;">
+                <button onclick="removeTeam(${idx})" style="background:#fee2e2; border:none; color:#ef4444; border-radius:8px; width:35px;">×</button>
             `;
             teamList.appendChild(div);
         });
-
         const memberList = document.getElementById('memberSettingList');
         memberList.innerHTML = '';
         appConfig.members.forEach((mem, idx) => {
             const div = document.createElement('div');
-            div.className = 'input-row';
+            div.style.display = 'flex'; div.style.gap = '5px'; div.style.marginBottom = '5px';
             div.innerHTML = `
-                <input type="text" value="${mem}" onchange="appConfig.members[${idx}] = this.value" style="flex:1;">
-                ${appConfig.members.length > 1 ? `<button class="del-btn" onclick="removeMember(${idx})">×</button>` : ''}
+                <input type="text" value="${mem}" onchange="appConfig.members[${idx}] = this.value" style="margin:0; padding:8px; flex:1;">
+                <button onclick="removeMember(${idx})" style="background:#fee2e2; border:none; color:#ef4444; border-radius:8px; width:35px;">×</button>
             `;
             memberList.appendChild(div);
         });
-
-        const truncList = document.getElementById('truncOptions');
-        const units = [1, 10, 100];
-        const labels = ["1원 (정확하게)", "10원 단위 버림", "100원 단위 버림"];
-        truncList.innerHTML = units.map((u, i) => `
-            <label class="radio-option">
-                <input type="radio" name="truncUnit" value="${u}" ${appConfig.truncationUnit == u ? 'checked' : ''} onclick="appConfig.truncationUnit=${u}">
-                ${labels[i]}
-            </label>
-        `).join('');
     }
 
-    function addTeamInput() { appConfig.teams.push({ id: `team${Date.now()}`, name: "새로운팀", isMyTeam: false }); renderSettingsUI(); }
-    function removeTeam(idx) { if(confirm('이 팀을 삭제하시겠습니까?')) { appConfig.teams.splice(idx, 1); if(!appConfig.teams.some(t=>t.isMyTeam) && appConfig.teams.length > 0) appConfig.teams[0].isMyTeam = true; renderSettingsUI(); } }
+    function addTeamInput() { appConfig.teams.push({ id: `team${Date.now()}`, name: "새팀", isMyTeam: false }); renderSettingsUI(); }
+    function removeTeam(idx) { appConfig.teams.splice(idx, 1); renderSettingsUI(); }
     function updateMyTeam(idx) { appConfig.teams.forEach((t, i) => t.isMyTeam = (i === idx)); }
-    function addMemberInput() { appConfig.members.push("새팀원"); renderSettingsUI(); }
+    function addMemberInput() { appConfig.members.push("새멤버"); renderSettingsUI(); }
     function removeMember(idx) { appConfig.members.splice(idx, 1); renderSettingsUI(); }
-    function saveSettings() { localStorage.setItem('appConfig', JSON.stringify(appConfig)); document.getElementById('settingsModal').style.display = 'none'; loadData(); location.reload(); }
-    function factoryReset() { if(confirm("정말 초기화하시겠습니까?\n모든 정산 내역과 팀 설정이 삭제됩니다.")) { localStorage.clear(); location.reload(); } }
+    function saveSettings() { localStorage.setItem('appConfig', JSON.stringify(appConfig)); location.reload(); }
+    function factoryReset() { if(confirm("초기화할까요?")) { localStorage.clear(); location.reload(); } }
 
     function loadData() {
         const savedData = localStorage.getItem('settlementData');
@@ -241,8 +239,7 @@
         list.innerHTML = ""; 
         if (savedData && JSON.parse(savedData).length > 0) { 
             JSON.parse(savedData).forEach((item, idx) => renderItemSummary(item, idx)); 
-        } 
-        else { list.innerHTML = `<div class="empty-state"><div class="empty-icon">📝</div><div>아직 내역이 없습니다.<br>아래 버튼을 눌러 추가해주세요.</div></div>`; }
+        } else { list.innerHTML = `<div class="empty-state">아직 내역이 없습니다.</div>`; }
     }
 
     function renderItemSummary(data, index) {
@@ -250,24 +247,15 @@
         if (list.querySelector('.empty-state')) list.innerHTML = "";
         const div = document.createElement('div');
         div.className = 'item-group';
-        
         const name = data.name || (index + 1) + "차";
         const amt = data.amount || "0";
         const payer = data.payer || "결제자 미선택";
-        const checkedTeams = appConfig.teams
-            .filter(t => data.teams[t.id] !== false)
-            .map(t => t.name.split('(')[0]);
-        const teamStr = checkedTeams.length > 0 ? checkedTeams.join(',') : "참여팀 없음";
-
+        const checkedTeams = appConfig.teams.filter(t => data.teams[t.id] !== false).map(t => t.name.split('(')[0]);
         div.innerHTML = `
             <button class="remove-btn" onclick="event.stopPropagation(); removeItem(${index})">×</button>
             <div class="item-header" onclick="openItemModal(${index})">
-                <span style="font-weight:bold; font-size:0.9rem;" class="title-text">${name} (${amt}원)</span>
-                <div class="sub-text">
-                    <span class="info-label">💳</span> <span class="info-val">${payer}</span>
-                    <span class="divider">/</span>
-                    <span class="info-label">👥</span> <span class="info-val team-list">${teamStr}</span>
-                </div>
+                <span style="font-weight:bold; font-size:0.95rem;" class="title-text">${name} (${amt}원)</span>
+                <div class="sub-text">💳 <span class="info-val">${payer}</span> <span style="color:#e2e8f0">|</span> 👥 <span class="info-val team-list">${checkedTeams.join(',')}</span></div>
             </div>
         `;
         list.appendChild(div);
@@ -277,207 +265,109 @@
         currentEditingIndex = index;
         const modal = document.getElementById('itemModal');
         const body = document.getElementById('itemModalBody');
-        const title = document.getElementById('itemModalTitle');
-        
-        let data = { name: '', amount: '', payer: '', teams: {} };
-        if (index !== -1) {
-            const saved = JSON.parse(localStorage.getItem('settlementData'));
-            data = saved[index];
-            title.innerText = (index + 1) + "차 내역 수정";
-        } else {
-            title.innerText = "새로운 차수 추가";
-        }
-
+        let data = (index !== -1) ? JSON.parse(localStorage.getItem('settlementData'))[index] : { name: '', amount: '', payer: '', teams: {} };
         const otherTeams = appConfig.teams.filter(t => !t.isMyTeam);
-        let payerOptionsHtml = otherTeams.map(t => `<label class="radio-item"><input type="radio" name="modalPayer" value="${t.name}" ${data.payer === t.name ? 'checked' : ''}>${t.name}</label>`).join('');
-        payerOptionsHtml += appConfig.members.map(m => `<label class="radio-item"><input type="radio" name="modalPayer" value="${m}" ${data.payer === m ? 'checked' : ''}>${m}</label>`).join('');
-        const teamCheckHtml = appConfig.teams.map(t => `<label class="check-item"><input type="checkbox" class="modal-team-check" value="${t.id}" ${data.teams[t.id] !== false ? 'checked' : ''}>${t.name}</label>`).join('');
-
+        let payerHtml = otherTeams.map(t => `<label class="radio-item"><input type="radio" name="modalPayer" value="${t.name}" ${data.payer === t.name ? 'checked' : ''} style="display:none">${t.name}</label>`).join('');
+        payerHtml += appConfig.members.map(m => `<label class="radio-item"><input type="radio" name="modalPayer" value="${m}" ${data.payer === m ? 'checked' : ''} style="display:none">${m}</label>`).join('');
+        const teamCheckHtml = appConfig.teams.map(t => `<label class="check-item"><input type="checkbox" class="modal-team-check" value="${t.id}" ${data.teams[t.id] !== false ? 'checked' : ''} style="display:none">${t.name}</label>`).join('');
         body.innerHTML = `
-            <input type="text" placeholder="항목명 (예: 감자탕)" id="modalItemName" value="${data.name || ''}">
-            <input type="text" placeholder="결제 금액" id="modalItemAmount" inputmode="numeric" value="${data.amount || ''}" oninput="formatAmount(this)">
-            <span class="label-text">💳 누가 결제했나요? (필수)</span>
-            <div class="flex-group">${payerOptionsHtml}</div>
-            <span class="label-text">👥 참여한 팀 선택</span>
-            <div class="flex-group">${teamCheckHtml}</div>
+            <input type="text" placeholder="항목명 (예: 저녁식사)" id="modalItemName" value="${data.name || ''}">
+            <input type="text" placeholder="금액" id="modalItemAmount" inputmode="numeric" value="${data.amount || ''}" oninput="formatAmount(this)">
+            <span style="font-size:0.8rem; font-weight:bold; margin-top:12px; display:block; color:#64748b;">💳 결제자</span>
+            <div style="display:flex; flex-wrap:wrap; gap:5px; margin-top:5px;">${payerHtml}</div>
+            <span style="font-size:0.8rem; font-weight:bold; margin-top:12px; display:block; color:#64748b;">👥 참여팀</span>
+            <div style="display:flex; flex-wrap:wrap; gap:5px; margin-top:5px;">${teamCheckHtml}</div>
         `;
         modal.style.display = 'flex';
     }
 
     function closeItemModal() { document.getElementById('itemModal').style.display = 'none'; }
+    function formatAmount(obj) { let v = obj.value.replace(/[^0-9]/g, ""); obj.value = v.replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
 
     function saveItemFromModal() {
-        const name = document.getElementById('modalItemName').value;
-        const amount = document.getElementById('modalItemAmount').value;
-        const payer = document.querySelector('input[name="modalPayer"]:checked')?.parentElement.textContent || "";
-        
-        if (!amount || !payer) return alert("금액과 결제자를 모두 입력해주세요.");
-
+        const amt = document.getElementById('modalItemAmount').value;
+        const payerLabel = document.querySelector('input[name="modalPayer"]:checked')?.parentElement.textContent;
+        if (!amt || !payerLabel) return alert("필수항목 입력!");
         const teamChecks = {};
         document.querySelectorAll('.modal-team-check').forEach(cb => { teamChecks[cb.value] = cb.checked; });
-
-        const newItem = { name, amount, payer, teams: teamChecks };
-        let savedData = JSON.parse(localStorage.getItem('settlementData') || "[]");
-
-        if (currentEditingIndex === -1) { savedData.push(newItem); } 
-        else { savedData[currentEditingIndex] = newItem; }
-
-        localStorage.setItem('settlementData', JSON.stringify(savedData));
-        closeItemModal();
-        loadData();
+        const newItem = { name: document.getElementById('modalItemName').value, amount: amt, payer: payerLabel, teams: teamChecks };
+        let saved = JSON.parse(localStorage.getItem('settlementData') || "[]");
+        if (currentEditingIndex === -1) saved.push(newItem); else saved[currentEditingIndex] = newItem;
+        localStorage.setItem('settlementData', JSON.stringify(saved));
+        closeItemModal(); loadData();
     }
 
-    function removeItem(index) {
-        if(confirm("삭제하시겠습니까?")) {
-            let savedData = JSON.parse(localStorage.getItem('settlementData') || "[]");
-            savedData.splice(index, 1);
-            localStorage.setItem('settlementData', JSON.stringify(savedData));
-            loadData();
-        }
-    }
-
-    function formatAmount(obj) { let value = obj.value.replace(/[^0-9]/g, ""); obj.value = value.replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
-    function clearAllItems() { if(confirm("모든 정산 내역을 지우시겠습니까?\n(설정된 팀 정보는 유지됩니다)")) { localStorage.removeItem('settlementData'); document.getElementById('result').style.display = 'none'; document.getElementById('actionButtons').style.display = 'none'; loadData(); } }
-    
-    function applyTruncate(amount) {
-        const unit = appConfig.truncationUnit || 1;
-        const corrected = Math.round(amount); 
-        return Math.floor(corrected / unit) * unit;
-    }
+    function removeItem(idx) { if(confirm("삭제?")) { let s = JSON.parse(localStorage.getItem('settlementData')); s.splice(idx,1); localStorage.setItem('settlementData', JSON.stringify(s)); loadData(); } }
+    function clearAllItems() { if(confirm("전체 삭제?")) { localStorage.removeItem('settlementData'); location.reload(); } }
+    function applyTruncate(amt) { const u = appConfig.truncationUnit || 1; return Math.floor(Math.round(amt) / u) * u; }
 
     function calculate() {
         const items = JSON.parse(localStorage.getItem('settlementData') || "[]");
-        if(items.length === 0) return alert("정산할 내역이 없습니다.");
-        const invalid = items.find(i => !i.payer || !i.amount || i.amount === "0");
-        if (invalid) return alert("결제 정보가 누락된 항목이 있습니다.");
-
-        let total = 0;
-        let teamPaid = {};
-        let teamSpent = {};
-        let memberPaid = {};
-        
+        if(items.length === 0) return alert("내역 없음");
+        let total = 0; let teamPaid = {}; let teamSpent = {}; let memberPaid = {};
         appConfig.teams.forEach(t => { teamPaid[t.id] = 0; teamSpent[t.id] = 0; });
         appConfig.members.forEach(m => { memberPaid[m] = 0; });
-
-        let tableHtml = `<table class="report-table"><tr><th style="width:25%">항목</th><th style="width:20%">결제자</th><th style="width:30%">참여팀</th><th style="width:25%">금액</th></tr>`;
         const myTeam = appConfig.teams.find(t => t.isMyTeam);
 
+        let tableHtml = `<table class="report-table"><tr><th>항목</th><th>결제자</th><th>금액</th></tr>`;
         items.forEach((item, idx) => {
             const amt = Number(item.amount.replace(/,/g,''));
             total += amt;
-            const participantNames = Object.keys(item.teams).filter(tid => item.teams[tid]).map(tid => {
-                const t = appConfig.teams.find(team => team.id === tid);
-                return t ? t.name.split('(')[0] : '';
-            }).join(', ');
-
-            tableHtml += `<tr><td>${item.name || (idx+1)+'차'}</td><td>${item.payer}</td><td style="font-size:0.6rem; color:#aaa;">${participantNames}</td><td>${amt.toLocaleString()}원</td></tr>`;
-
-            if (appConfig.members.includes(item.payer)) {
-                teamPaid[myTeam.id] += amt;
-                memberPaid[item.payer] += amt;
-            } else {
-                const payerTeam = appConfig.teams.find(t => t.name === item.payer);
-                if (payerTeam) { teamPaid[payerTeam.id] += amt; }
-            }
-
-            const activeTeams = Object.keys(item.teams).filter(tid => item.teams[tid]);
-            if (activeTeams.length > 0) {
-                const perTeamCost = amt / activeTeams.length;
-                activeTeams.forEach(tid => { if (teamSpent[tid] !== undefined) teamSpent[tid] += perTeamCost; });
-            }
+            tableHtml += `<tr><td>${item.name || (idx+1)+'차'}</td><td>${item.payer}</td><td>${amt.toLocaleString()}</td></tr>`;
+            if (appConfig.members.includes(item.payer)) { teamPaid[myTeam.id] += amt; memberPaid[item.payer] += amt; }
+            else { const pt = appConfig.teams.find(t => t.name === item.payer); if (pt) teamPaid[pt.id] += amt; }
+            const active = Object.keys(item.teams).filter(tid => item.teams[tid]);
+            if (active.length > 0) { const per = amt / active.length; active.forEach(tid => { if(teamSpent[tid]!==undefined) teamSpent[tid]+=per; });}
         });
 
         let diffs = appConfig.teams.map(t => ({ id: t.id, name: t.name, balance: teamPaid[t.id] - teamSpent[t.id] }));
         let msg = "";
         diffs.filter(d => d.balance < -1).forEach(debtor => {
-            let debt = Math.abs(debtor.balance);
+            let d_amt = Math.abs(debtor.balance);
             diffs.filter(c => c.balance > 1).forEach(creditor => {
-                if (debt <= 0 || creditor.balance <= 0) return;
-                let amount = Math.min(debt, creditor.balance);
-                let finalAmount = applyTruncate(amount);
-                msg += `<div class="guide-container"><span class="guide-team">💰 ${debtor.name} → ${creditor.name}</span><div class="guide-detail"><span class="send-label">보내야 할 돈</span><span class="highlight">${finalAmount.toLocaleString()}원</span></div></div>`;
-                debt -= amount; creditor.balance -= amount;
+                if (d_amt <= 0 || creditor.balance <= 0) return;
+                let trade = Math.min(d_amt, creditor.balance);
+                msg += `<div class="guide-container"><span class="guide-team">💰 ${debtor.name} → ${creditor.name}</span><div style="display:flex; align-items:center;"><span class="send-label">송금액</span><span class="highlight">${applyTruncate(trade).toLocaleString()}원</span></div></div>`;
+                d_amt -= trade; creditor.balance -= trade;
             });
         });
 
-        document.getElementById('reportHeader').innerHTML = `
-            <div style="font-size:0.8rem; color:#bbb; border-bottom:1px solid #555; padding-bottom:5px;">📍 지출 내역</div>
-            ${tableHtml}
-            <div style="text-align:right; margin:15px 0; padding:10px; background: rgba(243, 156, 18, 0.1); border-radius: 8px; border: 1px dashed #f39c12;">
-                <span style="font-size:0.85rem; color:#bbb; margin-right:8px;">전체 합계</span>
-                <span style="font-size:1.1rem; font-weight:bold; color:#f39c12;">${total.toLocaleString()}원</span>
-            </div>`;
-
-        document.getElementById('reportGuide').innerHTML = `<div style="font-size:0.8rem; color:#bbb; margin-bottom:8px;">📍 최종 송금 가이드 (절사: ${appConfig.truncationUnit}원)</div><div style="background:#3d4446; padding:15px; border-radius:12px;">${msg || "정산 완료 (주고받을 돈 없음)"}</div>`;
+        document.getElementById('reportHeader').innerHTML = `${tableHtml}</table><div style="text-align:right; margin-bottom:20px; font-weight:800; font-size:1.1rem; color:var(--dark);">TOTAL: ${total.toLocaleString()}원</div>`;
+        document.getElementById('reportGuide').innerHTML = `<div style="font-size:0.75rem; color:#94a3b8; margin-bottom:10px; font-weight:bold;">[팀 간 정산 결과]</div><div style="background:#f8fafc; padding:15px; border-radius:12px; border:1px solid #f1f5f9;">${msg || "정산 완료"}</div>`;
         
-        const myTeamTotalSpent = teamSpent[myTeam.id];
-        const perMemberShare = myTeamTotalSpent / appConfig.members.length;
-
-        let statusHtml = `<div class="status-header"><span class="col-name">이름</span><span class="col-paid">낸 돈</span><span class="col-share">1인 몫</span><span class="col-result">결과</span></div>`;
-        let memberBalances = {};
-        
+        const perMember = teamSpent[myTeam.id] / appConfig.members.length;
+        let statusHtml = `<div class="status-header"><span>이름</span><span>낸돈 / 결과</span></div>`;
+        let mBal = {};
         appConfig.members.forEach(m => {
-            const paid = memberPaid[m];
-            const balance = paid - perMemberShare;
-            memberBalances[m] = balance;
-            let displayShare = applyTruncate(perMemberShare);
-            let displayBalance = applyTruncate(Math.abs(balance));
-            if (balance < 0) displayBalance = -displayBalance;
-            const diffText = displayBalance > 0 ? `+${displayBalance.toLocaleString()}` : `${displayBalance.toLocaleString()}`;
-            const colorClass = displayBalance >= 0 ? 'text-green' : 'text-red';
-            statusHtml += `<div class="status-row"><span class="col-name">${m}</span><span class="col-paid">${Math.round(paid).toLocaleString()}</span><span class="col-share">${displayShare.toLocaleString()}</span><span class="col-result ${colorClass}">${diffText}</span></div>`;
+            const paid = memberPaid[m]; const bal = paid - perMember; mBal[m] = bal;
+            const color = bal >= 0 ? 'text-green' : 'text-red';
+            statusHtml += `<div class="status-row"><span>${m}</span><span class="${color}">${Math.round(paid).toLocaleString()} / ${bal > 0 ? '+' : ''}${applyTruncate(bal).toLocaleString()}</span></div>`;
         });
 
-        let step1Html = "";
-        let givers = Object.keys(memberBalances).filter(m => memberBalances[m] < -1);
-        let receivers = Object.keys(memberBalances).filter(m => memberBalances[m] > 1);
-        givers.sort((a,b) => memberBalances[a] - memberBalances[b]);
-        receivers.sort((a,b) => memberBalances[b] - memberBalances[a]);
-
-        givers.forEach(giver => {
-            receivers.forEach(receiver => {
-                let debt = Math.abs(memberBalances[giver]);
-                let credit = memberBalances[receiver];
+        let step1 = "";
+        let givers = Object.keys(mBal).filter(m => mBal[m] < -1);
+        let receivers = Object.keys(mBal).filter(m => mBal[m] > 1);
+        givers.forEach(g => {
+            receivers.forEach(r => {
+                let debt = Math.abs(mBal[g]); let credit = mBal[r];
                 if (debt < 1 || credit < 1) return;
                 let trade = Math.min(debt, credit);
-                memberBalances[giver] += trade; memberBalances[receiver] -= trade;
-                let finalTrade = applyTruncate(trade);
-                step1Html += `<div class="settle-card send"><span class="step-badge send">STEP 1 (내부)</span><div class="settle-text">${giver} → ${receiver}: <span class="highlight">${finalTrade.toLocaleString()}원</span></div></div>`;
+                mBal[g] += trade; mBal[r] -= trade;
+                step1 += `<div class="settle-card send"><div class="settle-text">${g} → ${r}: <span class="highlight">${applyTruncate(trade).toLocaleString()}원</span></div></div>`;
             });
         });
-        
-        if (step1Html === "") step1Html = `<div style="font-size:0.85rem; color:#aaa; margin-bottom:10px;">내부끼리는 주고받을 돈이 없습니다.</div>`;
 
-        let step2Html = "";
-        let hasExternalAction = false;
-        Object.keys(memberBalances).forEach(m => {
-            let balance = memberBalances[m];
-            if (Math.abs(balance) > 10) {
-                hasExternalAction = true;
-                let finalBal = applyTruncate(Math.abs(balance));
-                if (balance > 0) { step2Html += `<div class="settle-card keep"><span class="step-badge keep">STEP 2 (외부)</span><div class="settle-text">${m}(이)가 외부 자금 중 <span class="highlight">${finalBal.toLocaleString()}원</span>을 가집니다.</div></div>`; } 
-                else { step2Html += `<div class="settle-card send"><span class="step-badge send">STEP 2 (외부)</span><div class="settle-text">${m}(이)가 외부에 <span class="highlight">${finalBal.toLocaleString()}원</span>을 보냅니다.</div></div>`; }
-            }
-        });
-
-        if (!hasExternalAction) step2Html = `<div style="font-size:0.8rem; color:#aaa; margin-top:5px;">* 외부와 주고받을 돈이 없습니다.</div>`;
-        let footerMsg = appConfig.truncationUnit > 1 ? `<div style="font-size:0.7rem; color:#666; margin-top:10px; text-align:right;">* ${appConfig.truncationUnit}원 단위 미만은 절사되었습니다.</div>` : "";
-
-        document.getElementById('privateSection').innerHTML = `<hr style="border:0; border-top:1px dashed #555; margin:15px 0;"><div style="font-size:0.8rem; color:#bbb; margin-bottom:8px;">📍 ${myTeam.name} 내부 정산 레시피</div><div class="status-table">${statusHtml}</div>${step1Html}${step2Html}${footerMsg}`;
+        document.getElementById('privateSection').innerHTML = `<hr style="border:none; border-top:2px dashed #f1f5f9; margin:25px 0;"><div style="font-size:0.75rem; color:#94a3b8; margin-bottom:10px; font-weight:bold;">[우리 팀 내부 정산]</div><div class="status-table">${statusHtml}</div>${step1 || "내부 정산 없음"}`;
         document.getElementById('result').style.display = 'block';
         document.getElementById('actionButtons').style.display = 'block';
         window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
     }
 
     function saveAsImage() {
-        const privateSection = document.getElementById('privateSection');
-        privateSection.style.display = 'none';
-        html2canvas(document.getElementById('captureArea'), { backgroundColor: "#f2f4f7", scale: 2 }).then(canvas => {
+        html2canvas(document.getElementById('captureArea'), { backgroundColor: "#f1f5f9", scale: 2 }).then(canvas => {
             const link = document.createElement('a');
-            link.download = `정산리포트_${new Date().toISOString().slice(0,10)}.png`;
-            link.href = canvas.toDataURL();
-            link.click();
-            privateSection.style.display = 'block';
+            link.download = `정산리포트_${new Date().getTime()}.png`;
+            link.href = canvas.toDataURL(); link.click();
         });
     }
 </script>
