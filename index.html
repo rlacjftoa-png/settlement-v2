@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>팀 정산 어플 (Final V35)</title>
+    <title>팀 정산 어플 (Final V36)</title>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <style>
-        /* [Update: 2026-02-17-v35] Total amount moved to bottom for better visibility */
+        /* [Update: 2026-02-17-v36] Header info combined into one line */
         :root { --primary: #4a90e2; --bg: #f2f4f7; --card-bg: #ffffff; --danger: #ff4d4f; --success: #28a745; --dark: #2d3436; --gray-border: #dfe6e9; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); padding: 10px; margin: 0; color: #333; -webkit-tap-highlight-color: transparent; }
         .container { max-width: 450px; margin: 0 auto; padding-bottom: 30px; }
@@ -31,12 +31,15 @@
         .item-group { border: 1px solid #eee; border-radius: 12px; margin-bottom: 10px; overflow: hidden; background: #fff; position: relative; transition: all 0.3s ease; }
         .item-group.collapsed { border-left: 6px solid var(--success); background: #fafbfc; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         .item-group.collapsed .title-text::before { content: "✔"; color: var(--success); margin-right: 6px; font-weight: bold; }
-        .item-header { padding: 12px 45px 12px 15px; cursor: pointer; display: flex; flex-direction: column; gap: 4px; }
-        .sub-text { font-size: 0.75rem; color: #666; line-height: 1.4; }
-        .info-row { display: flex; align-items: flex-start; gap: 4px; margin-bottom: 2px; }
-        .info-label { font-weight: bold; color: #888; white-space: nowrap; }
-        .info-val { color: #333; font-weight: 500; word-break: break-all; }
+        
+        /* [수정] 헤더 레이아웃 */
+        .item-header { padding: 12px 45px 12px 15px; cursor: pointer; display: flex; flex-direction: column; gap: 2px; }
+        .sub-text { font-size: 0.75rem; color: #666; display: flex; align-items: center; gap: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .info-label { font-weight: bold; color: #888; }
+        .info-val { color: #333; font-weight: 500; }
         .info-val.team-list { color: var(--primary); }
+        .divider { color: #ddd; margin: 0 2px; }
+
         .item-body { padding: 15px; border-top: 1px solid #eee; background: #fdfdfd; }
         .collapsed .item-body { display: none; }
         
@@ -268,18 +271,31 @@
         updateHeader(div.querySelector('.item-name'));
     }
 
+    // [수정] 헤더 정보를 한 줄로 통합 (결제자 / 참여팀)
     function updateHeader(element) {
         const g = element.closest('.item-group');
         const nameInput = g.querySelector('.item-name').value;
         const amt = g.querySelector('.item-amount').value || "0";
-        const payer = g.querySelector(`input[type="radio"]:checked`)?.parentElement.textContent || "미선택";
-        const checkedTeams = Array.from(g.querySelectorAll('.team-check:checked')).map(cb => cb.getAttribute('data-name'));
+        const payer = g.querySelector(`input[type="radio"]:checked`)?.parentElement.textContent || "결제자 미선택";
+        const checkedTeams = Array.from(g.querySelectorAll('.team-check:checked')).map(cb => {
+            const fullTeamName = cb.getAttribute('data-name');
+            return fullTeamName.split('(')[0]; // 가독성을 위해 괄호 앞 이름만 표시
+        });
+        
         const allGroups = Array.from(document.querySelectorAll('.item-group'));
         const index = allGroups.indexOf(g) + 1;
         const finalName = nameInput || index + "차";
+        
         g.querySelector('.title-text').innerText = `${finalName} (${amt}원)`;
-        const teamStr = checkedTeams.length > 0 ? checkedTeams.join(', ') : "없음";
-        g.querySelector('.sub-text').innerHTML = `<div class="info-row"><span class="info-label">💳 결제:</span> <span class="info-val">${payer}</span></div><div class="info-row"><span class="info-label">👥 참여:</span> <span class="info-val team-list">${teamStr}</span></div>`;
+        
+        const teamStr = checkedTeams.length > 0 ? checkedTeams.join(',') : "참여팀 없음";
+        
+        // 한 줄로 배치
+        g.querySelector('.sub-text').innerHTML = `
+            <span class="info-label">💳</span> <span class="info-val">${payer}</span>
+            <span class="divider">/</span>
+            <span class="info-label">👥</span> <span class="info-val team-list">${teamStr}</span>
+        `;
         saveToLocal();
     }
 
@@ -392,7 +408,6 @@
             });
         });
 
-        // [수정] 총액을 테이블 하단으로 이동 및 강조 디자인 적용
         document.getElementById('reportHeader').innerHTML = `
             <div style="font-size:0.8rem; color:#bbb; border-bottom:1px solid #555; padding-bottom:5px;">📍 지출 내역</div>
             ${tableHtml}
