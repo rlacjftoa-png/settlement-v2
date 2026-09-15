@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>팀 정산 어플 (Final V36)</title>
+    <title>팀 정산 어플 (팀별 구성 미리보기)</title>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <style>
         /* [Update: 2026-02-17-v36] Header info combined into one line */
@@ -103,6 +103,7 @@
         .col-paid { width: 25%; text-align: right; }
         .col-share { width: 25%; text-align: right; }
         .col-result { width: 30%; text-align: right; font-weight: bold; }
+        .team-editor{border:1px solid #dfe6e9;border-radius:12px;padding:12px;margin-bottom:12px}.setting-help{font-size:.85rem;color:#666;line-height:1.6}select{width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;font:inherit}.payer-team{width:100%;margin-bottom:12px}.payer-team>strong{font-size:.9rem}.radio-item,.check-item{flex:1 1 100px;overflow-wrap:anywhere;min-height:42px}.modal-card{box-sizing:border-box}
     </style>
 </head>
 <body>
@@ -148,20 +149,7 @@
 <div id="settingsModal" class="modal-overlay">
     <div class="modal-card">
         <h3 class="modal-title">⚙️ 설정 관리</h3>
-        <div class="setting-section">
-            <span class="setting-label">👥 전체 팀 관리</span>
-            <div style="font-size:0.75rem; color:#888; margin-bottom:8px;">* 참여하는 모든 팀을 입력하세요. <br>* '내부 정산'은 우리 팀 하나만 선택하세요.</div>
-            <div id="teamSettingList"></div>
-            <button class="add-small-btn" onclick="addTeamInput()">+ 팀 추가하기</button>
-        </div>
-        <div class="setting-section">
-            <span class="setting-label">👤 우리 팀원 관리 (내부 정산용)</span>
-            <div style="font-size:0.75rem; color:#888; margin-bottom:8px;">* 우리 팀원 이름을 입력하세요. (개별 결제자)</div>
-            <div id="memberSettingList"></div>
-            <button class="add-small-btn" onclick="addMemberInput()">+ 팀원 추가하기</button>
-        </div>
-        <div class="setting-section">
-            <span class="setting-label">💰 정산 단위 (절사 설정)</span>
+        <div class="setting-section"><span class="setting-label">팀과 소속 사람</span><p class="setting-help">팀별로 사람을 등록하세요. 비용은 참여 팀끼리 똑같이 나눕니다.</p><div id="teamSettingList"></div><button class="add-small-btn" onclick="addTeamInput()">+ 팀 추가</button></div><div class="setting-section"><label class="setting-label" for="internalTeam">내부 정산할 팀</label><select id="internalTeam"></select><p class="setting-help">전체 팀 간 정산은 항상 계산하고, 내부 정산은 선택한 팀만 표시합니다.</p></div><div class="setting-section"><span class="setting-label">💰 정산 단위 (절사 설정)</span>
             <div style="font-size:0.75rem; color:#888; margin-bottom:8px;">* 최종 보낼 금액에서 자투리 돈을 버림합니다.</div>
             <div class="radio-wrapper" id="truncOptions"></div>
         </div>
@@ -181,62 +169,58 @@
         truncationUnit: 1
     };
 
-    let appConfig = JSON.parse(localStorage.getItem('appConfig')) || defaultConfig;
+    const CONFIG_KEY='settlement.teams.v2', DATA_KEY='settlement.items.v2';
+    function migrateConfig() {
+        const saved=JSON.parse(localStorage.getItem(CONFIG_KEY)||'null');
+        if(saved)return saved;
+        const old=JSON.parse(localStorage.getItem('appConfig')||'null')||defaultConfig;
+        return {teams:old.teams.map(t=>({...t,members:t.isMyTeam?[...old.members]:[]})),internalTeamId:old.teams.find(t=>t.isMyTeam)?.id||'',truncationUnit:old.truncationUnit||1};
+    }
+    let appConfig=migrateConfig();
+    let settingsDraft=null;
+    function esc(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+    function allPayers(){return appConfig.teams.flatMap(t=>[
+        {key:'team:'+t.id,name:t.name,teamId:t.id,member:false},
+        ...t.members.map((m,i)=>({key:'member:'+t.id+':'+i,name:m,teamId:t.id,member:true}))
+    ]);}
+    function resolvePayer(item){if(item.payerKey)return allPayers().find(p=>p.key===item.payerKey);const matches=allPayers().filter(p=>p.name===item.payer);return matches.length===1?matches[0]:null;}
+    function readItems(){return JSON.parse(localStorage.getItem(DATA_KEY)??localStorage.getItem('settlementData')??'[]');}
+    function writeItems(items){localStorage.setItem(DATA_KEY,JSON.stringify(items));}
     let currentEditingIndex = -1;
 
     window.onload = function() { loadData(); }
 
-    function openSettings() { renderSettingsUI(); document.getElementById('settingsModal').style.display = 'flex'; }
-    
-    function renderSettingsUI() {
-        const teamList = document.getElementById('teamSettingList');
-        teamList.innerHTML = '';
-        appConfig.teams.forEach((team, idx) => {
-            const div = document.createElement('div');
-            div.className = 'input-row';
-            div.innerHTML = `
-                <div class="radio-wrapper" style="flex:1;">
-                    <input type="radio" name="myTeamSelect" ${team.isMyTeam ? 'checked' : ''} onclick="updateMyTeam(${idx})">
-                    <input type="text" value="${team.name}" onchange="appConfig.teams[${idx}].name = this.value">
-                </div>
-                ${appConfig.teams.length > 1 ? `<button class="del-btn" onclick="removeTeam(${idx})">×</button>` : ''}
-            `;
-            teamList.appendChild(div);
+    function openSettings(){settingsDraft=JSON.parse(JSON.stringify(appConfig));renderSettingsUI();document.getElementById('settingsModal').style.display='flex';}
+    function renderSettingsUI(){
+        const root=document.getElementById('teamSettingList');root.innerHTML='';
+        settingsDraft.teams.forEach((t,i)=>{
+            const card=document.createElement('div');card.className='team-editor';
+            card.innerHTML='<label class="setting-label">팀 이름</label>';
+            const row=document.createElement('div');row.className='input-row';
+            const input=document.createElement('input');input.type='text';input.value=t.name;input.placeholder='예: 쌍용';input.oninput=()=>{t.name=input.value;renderInternalOptions()};row.append(input);
+            const del=document.createElement('button');del.className='del-btn';del.textContent='×';del.setAttribute('aria-label','팀 삭제');del.onclick=()=>{if(confirm('이 팀을 설정에서 삭제할까요? 기존 내역의 결제자를 다시 지정해야 할 수 있습니다.')){settingsDraft.teams.splice(i,1);if(settingsDraft.internalTeamId===t.id)settingsDraft.internalTeamId='';renderSettingsUI()}};row.append(del);card.append(row);
+            const label=document.createElement('p');label.className='setting-help';label.textContent='소속 사람';card.append(label);
+            t.members.forEach((m,j)=>{const r=document.createElement('div');r.className='input-row';const inp=document.createElement('input');inp.type='text';inp.value=m;inp.placeholder='사람 이름';inp.oninput=()=>t.members[j]=inp.value;const remove=document.createElement('button');remove.className='del-btn';remove.textContent='×';remove.setAttribute('aria-label','사람 삭제');remove.onclick=()=>{t.members.splice(j,1);renderSettingsUI()};r.append(inp,remove);card.append(r)});
+            const add=document.createElement('button');add.className='add-small-btn';add.textContent='+ 소속 사람 추가';add.onclick=()=>{t.members.push('');renderSettingsUI()};card.append(add);root.append(card);
         });
-
-        const memberList = document.getElementById('memberSettingList');
-        memberList.innerHTML = '';
-        appConfig.members.forEach((mem, idx) => {
-            const div = document.createElement('div');
-            div.className = 'input-row';
-            div.innerHTML = `
-                <input type="text" value="${mem}" onchange="appConfig.members[${idx}] = this.value" style="flex:1;">
-                ${appConfig.members.length > 1 ? `<button class="del-btn" onclick="removeMember(${idx})">×</button>` : ''}
-            `;
-            memberList.appendChild(div);
-        });
-
-        const truncList = document.getElementById('truncOptions');
-        const units = [1, 10, 100];
-        const labels = ["1원 (정확하게)", "10원 단위 버림", "100원 단위 버림"];
-        truncList.innerHTML = units.map((u, i) => `
-            <label class="radio-option">
-                <input type="radio" name="truncUnit" value="${u}" ${appConfig.truncationUnit == u ? 'checked' : ''} onclick="appConfig.truncationUnit=${u}">
-                ${labels[i]}
-            </label>
-        `).join('');
+        renderInternalOptions();
+        const trunc=document.getElementById('truncOptions');trunc.innerHTML='';
+        [1,10,100].forEach(unit=>{const label=document.createElement('label');label.className='radio-option';const radio=document.createElement('input');radio.type='radio';radio.name='truncUnit';radio.checked=settingsDraft.truncationUnit===unit;radio.onchange=()=>settingsDraft.truncationUnit=unit;label.append(radio,document.createTextNode(unit===1?'1원':unit+'원 단위 버림'));trunc.append(label)});
     }
-
-    function addTeamInput() { appConfig.teams.push({ id: `team${Date.now()}`, name: "새로운팀", isMyTeam: false }); renderSettingsUI(); }
-    function removeTeam(idx) { if(confirm('이 팀을 삭제하시겠습니까?')) { appConfig.teams.splice(idx, 1); if(!appConfig.teams.some(t=>t.isMyTeam) && appConfig.teams.length > 0) appConfig.teams[0].isMyTeam = true; renderSettingsUI(); } }
-    function updateMyTeam(idx) { appConfig.teams.forEach((t, i) => t.isMyTeam = (i === idx)); }
-    function addMemberInput() { appConfig.members.push("새팀원"); renderSettingsUI(); }
-    function removeMember(idx) { appConfig.members.splice(idx, 1); renderSettingsUI(); }
-    function saveSettings() { localStorage.setItem('appConfig', JSON.stringify(appConfig)); document.getElementById('settingsModal').style.display = 'none'; loadData(); location.reload(); }
-    function factoryReset() { if(confirm("정말 초기화하시겠습니까?\n모든 정산 내역과 팀 설정이 삭제됩니다.")) { localStorage.clear(); location.reload(); } }
-
+    function renderInternalOptions(){const select=document.getElementById('internalTeam');select.replaceChildren();const none=new Option('안 함','');select.add(none);settingsDraft.teams.forEach(t=>select.add(new Option(t.name||'이름 없는 팀',t.id)));select.value=settingsDraft.internalTeamId;select.onchange=()=>settingsDraft.internalTeamId=select.value;}
+    function addTeamInput(){settingsDraft.teams.push({id:'team'+Date.now()+Math.random().toString(36).slice(2,6),name:'',members:[]});renderSettingsUI();}
+    function saveSettings(){
+        const next=JSON.parse(JSON.stringify(settingsDraft));next.teams.forEach(t=>{t.name=t.name.trim();t.members=t.members.map(m=>m.trim()).filter(Boolean)});
+        if(!next.teams.length||next.teams.some(t=>!t.name))return alert('팀 이름을 입력하고 팀을 하나 이상 등록해 주세요.');
+        if(new Set(next.teams.map(t=>t.name)).size!==next.teams.length)return alert('팀 이름은 서로 다르게 입력해 주세요.');
+        if(next.teams.some(t=>new Set(t.members).size!==t.members.length))return alert('같은 팀에 같은 이름을 중복 등록할 수 없습니다.');
+        const oldItems=readItems().map(item=>{const p=resolvePayer(item);if(!p)return {...item,payerKey:'unresolved'};const team=next.teams.find(t=>t.id===p.teamId);const index=team?.members.indexOf(p.name)??-1;return {...item,payerKey:team&&(!p.member||index>=0)?(p.member?'member:'+team.id+':'+index:'team:'+team.id):'unresolved'}});
+        try{writeItems(oldItems);localStorage.setItem(CONFIG_KEY,JSON.stringify(next))}catch(e){return alert('설정을 저장하지 못했습니다. 브라우저 저장 공간을 확인해 주세요.')}
+        appConfig=next;document.getElementById('settingsModal').style.display='none';document.getElementById('result').style.display='none';document.getElementById('actionButtons').style.display='none';loadData();
+    }
+    function factoryReset(){if(confirm('이 앱의 정산 내역과 설정을 초기화할까요?')){localStorage.removeItem(CONFIG_KEY);localStorage.setItem(DATA_KEY,'[]');localStorage.removeItem('appConfig');writeItems([]);location.reload()}}
     function loadData() {
-        const savedData = localStorage.getItem('settlementData');
+        const savedData = JSON.stringify(readItems());
         const list = document.getElementById('itemList');
         list.innerHTML = ""; 
         if (savedData && JSON.parse(savedData).length > 0) { 
@@ -253,7 +237,7 @@
         
         const name = data.name || (index + 1) + "차";
         const amt = data.amount || "0";
-        const payer = data.payer || "결제자 미선택";
+        const resolved=resolvePayer(data); const payer = resolved ? resolved.name+" ("+(appConfig.teams.find(t=>t.id===resolved.teamId)?.name||"")+")" : (data.payer||"결제자 미선택")+" · 다시 선택 필요";
         const checkedTeams = appConfig.teams
             .filter(t => data.teams[t.id] !== false)
             .map(t => t.name.split('(')[0]);
@@ -262,11 +246,11 @@
         div.innerHTML = `
             <button class="remove-btn" onclick="event.stopPropagation(); removeItem(${index})">×</button>
             <div class="item-header" onclick="openItemModal(${index})">
-                <span style="font-weight:bold; font-size:0.9rem;" class="title-text">${name} (${amt}원)</span>
+                <span style="font-weight:bold; font-size:0.9rem;" class="title-text">${esc(name)} (${esc(amt)}원)</span>
                 <div class="sub-text">
-                    <span class="info-label">💳</span> <span class="info-val">${payer}</span>
+                    <span class="info-label">💳</span> <span class="info-val">${esc(payer)}</span>
                     <span class="divider">/</span>
-                    <span class="info-label">👥</span> <span class="info-val team-list">${teamStr}</span>
+                    <span class="info-label">👥</span> <span class="info-val team-list">${esc(teamStr)}</span>
                 </div>
             </div>
         `;
@@ -281,21 +265,19 @@
         
         let data = { name: '', amount: '', payer: '', teams: {} };
         if (index !== -1) {
-            const saved = JSON.parse(localStorage.getItem('settlementData'));
+            const saved = readItems();
             data = saved[index];
             title.innerText = (index + 1) + "차 내역 수정";
         } else {
             title.innerText = "새로운 차수 추가";
         }
 
-        const otherTeams = appConfig.teams.filter(t => !t.isMyTeam);
-        let payerOptionsHtml = otherTeams.map(t => `<label class="radio-item"><input type="radio" name="modalPayer" value="${t.name}" ${data.payer === t.name ? 'checked' : ''}>${t.name}</label>`).join('');
-        payerOptionsHtml += appConfig.members.map(m => `<label class="radio-item"><input type="radio" name="modalPayer" value="${m}" ${data.payer === m ? 'checked' : ''}>${m}</label>`).join('');
-        const teamCheckHtml = appConfig.teams.map(t => `<label class="check-item"><input type="checkbox" class="modal-team-check" value="${t.id}" ${data.teams[t.id] !== false ? 'checked' : ''}>${t.name}</label>`).join('');
-
+        const selected=resolvePayer(data);
+        let payerOptionsHtml=appConfig.teams.map(t=>'<div class="payer-team"><strong>'+esc(t.name)+'</strong><div class="flex-group">'+allPayers().filter(p=>p.teamId===t.id).map(p=>'<label class="radio-item"><input type="radio" name="modalPayer" value="'+esc(p.key)+'" '+(selected?.key===p.key?'checked':'')+'>'+esc(p.member?p.name+' ('+t.name+')':t.name+' · 팀 결제')+'</label>').join('')+'</div></div>').join('');
+        const teamCheckHtml=appConfig.teams.map(t=>'<label class="check-item"><input type="checkbox" class="modal-team-check" value="'+esc(t.id)+'" '+(data.teams[t.id]!==false?'checked':'')+'>'+esc(t.name)+'</label>').join('');
         body.innerHTML = `
-            <input type="text" placeholder="항목명 (예: 감자탕)" id="modalItemName" value="${data.name || ''}">
-            <input type="text" placeholder="결제 금액" id="modalItemAmount" inputmode="numeric" value="${data.amount || ''}" oninput="formatAmount(this)">
+            <input type="text" placeholder="항목명 (예: 감자탕)" id="modalItemName" value="${esc(data.name || '')}">
+            <input type="text" placeholder="결제 금액" id="modalItemAmount" inputmode="numeric" value="${esc(data.amount || '')}" oninput="formatAmount(this)">
             <span class="label-text">💳 누가 결제했나요? (필수)</span>
             <div class="flex-group">${payerOptionsHtml}</div>
             <span class="label-text">👥 참여한 팀 선택</span>
@@ -309,29 +291,32 @@
     function saveItemFromModal() {
         const name = document.getElementById('modalItemName').value;
         const amount = document.getElementById('modalItemAmount').value;
-        const payer = document.querySelector('input[name="modalPayer"]:checked')?.parentElement.textContent || "";
+        const payerKey=document.querySelector('input[name="modalPayer"]:checked')?.value;
+        const selectedPayer=allPayers().find(p=>p.key===payerKey);
+        const payer=selectedPayer?.name||'';
         
         if (!amount || !payer) return alert("금액과 결제자를 모두 입력해주세요.");
 
         const teamChecks = {};
         document.querySelectorAll('.modal-team-check').forEach(cb => { teamChecks[cb.value] = cb.checked; });
 
-        const newItem = { name, amount, payer, teams: teamChecks };
-        let savedData = JSON.parse(localStorage.getItem('settlementData') || "[]");
+        if(!Object.values(teamChecks).some(Boolean))return alert("참여 팀을 하나 이상 선택해 주세요.");
+        const newItem = { name, amount, payer, payerKey, teams: teamChecks };
+        let savedData = readItems();
 
         if (currentEditingIndex === -1) { savedData.push(newItem); } 
         else { savedData[currentEditingIndex] = newItem; }
 
-        localStorage.setItem('settlementData', JSON.stringify(savedData));
+        writeItems(savedData);
         closeItemModal();
         loadData();
     }
 
     function removeItem(index) {
         if(confirm("삭제하시겠습니까?")) {
-            let savedData = JSON.parse(localStorage.getItem('settlementData') || "[]");
+            let savedData = readItems();
             savedData.splice(index, 1);
-            localStorage.setItem('settlementData', JSON.stringify(savedData));
+            writeItems(savedData);
             loadData();
         }
     }
@@ -346,21 +331,24 @@
     }
 
     function calculate() {
-        const items = JSON.parse(localStorage.getItem('settlementData') || "[]");
+        const items = readItems();
         if(items.length === 0) return alert("정산할 내역이 없습니다.");
-        const invalid = items.find(i => !i.payer || !i.amount || i.amount === "0");
-        if (invalid) return alert("결제 정보가 누락된 항목이 있습니다.");
+        const invalid = items.find(i => !resolvePayer(i) || !i.amount || i.amount === "0" || !Object.keys(i.teams).some(id=>i.teams[id]&&appConfig.teams.some(t=>t.id===id)));
+        if (invalid) return alert("결제자 또는 참여 팀을 확인할 내역이 있습니다. 해당 차수를 열어 다시 선택해 주세요.");
 
+        const myTeam=appConfig.teams.find(t=>t.id===appConfig.internalTeamId);
+        const internalMembers=myTeam?.members||[];
+        let teamOnlyPaid=0;
         let total = 0;
         let teamPaid = {};
         let teamSpent = {};
         let memberPaid = {};
         
         appConfig.teams.forEach(t => { teamPaid[t.id] = 0; teamSpent[t.id] = 0; });
-        appConfig.members.forEach(m => { memberPaid[m] = 0; });
+        internalMembers.forEach(m => { memberPaid[m] = 0; });
 
         let tableHtml = `<table class="report-table"><tr><th style="width:25%">항목</th><th style="width:20%">결제자</th><th style="width:30%">참여팀</th><th style="width:25%">금액</th></tr>`;
-        const myTeam = appConfig.teams.find(t => t.isMyTeam);
+
 
         items.forEach((item, idx) => {
             const amt = Number(item.amount.replace(/,/g,''));
@@ -370,17 +358,12 @@
                 return t ? t.name.split('(')[0] : '';
             }).join(', ');
 
-            tableHtml += `<tr><td>${item.name || (idx+1)+'차'}</td><td>${item.payer}</td><td style="font-size:0.6rem; color:#aaa;">${participantNames}</td><td>${amt.toLocaleString()}원</td></tr>`;
+            tableHtml += `<tr><td>${esc(item.name || (idx+1)+'차')}</td><td>${esc(resolvePayer(item)?.name||item.payer)}</td><td style="font-size:0.6rem; color:#aaa;">${esc(participantNames)}</td><td>${amt.toLocaleString()}원</td></tr>`;
 
-            if (appConfig.members.includes(item.payer)) {
-                teamPaid[myTeam.id] += amt;
-                memberPaid[item.payer] += amt;
-            } else {
-                const payerTeam = appConfig.teams.find(t => t.name === item.payer);
-                if (payerTeam) { teamPaid[payerTeam.id] += amt; }
-            }
-
-            const activeTeams = Object.keys(item.teams).filter(tid => item.teams[tid]);
+            const actualPayer=resolvePayer(item);
+            teamPaid[actualPayer.teamId]+=amt;
+            if(actualPayer.teamId===myTeam?.id){if(actualPayer.member)memberPaid[actualPayer.name]+=amt;else teamOnlyPaid+=amt;}
+            const activeTeams = Object.keys(item.teams).filter(tid => item.teams[tid] && appConfig.teams.some(t=>t.id===tid));
             if (activeTeams.length > 0) {
                 const perTeamCost = amt / activeTeams.length;
                 activeTeams.forEach(tid => { if (teamSpent[tid] !== undefined) teamSpent[tid] += perTeamCost; });
@@ -395,7 +378,7 @@
                 if (debt <= 0 || creditor.balance <= 0) return;
                 let amount = Math.min(debt, creditor.balance);
                 let finalAmount = applyTruncate(amount);
-                msg += `<div class="guide-container"><span class="guide-team">💰 ${debtor.name} → ${creditor.name}</span><div class="guide-detail"><span class="send-label">보내야 할 돈</span><span class="highlight">${finalAmount.toLocaleString()}원</span></div></div>`;
+                msg += `<div class="guide-container"><span class="guide-team">💰 ${esc(debtor.name)} → ${esc(creditor.name)}</span><div class="guide-detail"><span class="send-label">보내야 할 돈</span><span class="highlight">${finalAmount.toLocaleString()}원</span></div></div>`;
                 debt -= amount; creditor.balance -= amount;
             });
         });
@@ -410,13 +393,17 @@
 
         document.getElementById('reportGuide').innerHTML = `<div style="font-size:0.8rem; color:#bbb; margin-bottom:8px;">📍 최종 송금 가이드 (절사: ${appConfig.truncationUnit}원)</div><div style="background:#3d4446; padding:15px; border-radius:12px;">${msg || "정산 완료 (주고받을 돈 없음)"}</div>`;
         
+        if(!myTeam||internalMembers.length===0||teamOnlyPaid>0){
+            document.getElementById('privateSection').innerHTML=!myTeam?'':'<p>'+esc(myTeam.name)+(internalMembers.length===0?'에 소속 사람을 등록하면 내부 정산을 볼 수 있습니다.':'의 팀 결제 내역은 실제 결제자로 변경해야 내부 정산을 계산할 수 있습니다.')+'</p>';
+            document.getElementById('result').style.display='block';document.getElementById('actionButtons').style.display='block';window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});return;
+        }
         const myTeamTotalSpent = teamSpent[myTeam.id];
-        const perMemberShare = myTeamTotalSpent / appConfig.members.length;
+        const perMemberShare = myTeamTotalSpent / internalMembers.length;
 
         let statusHtml = `<div class="status-header"><span class="col-name">이름</span><span class="col-paid">낸 돈</span><span class="col-share">1인 몫</span><span class="col-result">결과</span></div>`;
         let memberBalances = {};
         
-        appConfig.members.forEach(m => {
+        internalMembers.forEach(m => {
             const paid = memberPaid[m];
             const balance = paid - perMemberShare;
             memberBalances[m] = balance;
@@ -425,7 +412,7 @@
             if (balance < 0) displayBalance = -displayBalance;
             const diffText = displayBalance > 0 ? `+${displayBalance.toLocaleString()}` : `${displayBalance.toLocaleString()}`;
             const colorClass = displayBalance >= 0 ? 'text-green' : 'text-red';
-            statusHtml += `<div class="status-row"><span class="col-name">${m}</span><span class="col-paid">${Math.round(paid).toLocaleString()}</span><span class="col-share">${displayShare.toLocaleString()}</span><span class="col-result ${colorClass}">${diffText}</span></div>`;
+            statusHtml += `<div class="status-row"><span class="col-name">${esc(m)}</span><span class="col-paid">${Math.round(paid).toLocaleString()}</span><span class="col-share">${displayShare.toLocaleString()}</span><span class="col-result ${colorClass}">${diffText}</span></div>`;
         });
 
         let step1Html = "";
@@ -442,7 +429,7 @@
                 let trade = Math.min(debt, credit);
                 memberBalances[giver] += trade; memberBalances[receiver] -= trade;
                 let finalTrade = applyTruncate(trade);
-                step1Html += `<div class="settle-card send"><span class="step-badge send">STEP 1 (내부)</span><div class="settle-text">${giver} → ${receiver}: <span class="highlight">${finalTrade.toLocaleString()}원</span></div></div>`;
+                step1Html += `<div class="settle-card send"><span class="step-badge send">STEP 1 (내부)</span><div class="settle-text">${esc(giver)} → ${esc(receiver)}: <span class="highlight">${finalTrade.toLocaleString()}원</span></div></div>`;
             });
         });
         
@@ -455,15 +442,15 @@
             if (Math.abs(balance) > 10) {
                 hasExternalAction = true;
                 let finalBal = applyTruncate(Math.abs(balance));
-                if (balance > 0) { step2Html += `<div class="settle-card keep"><span class="step-badge keep">STEP 2 (외부)</span><div class="settle-text">${m}(이)가 외부 자금 중 <span class="highlight">${finalBal.toLocaleString()}원</span>을 가집니다.</div></div>`; } 
-                else { step2Html += `<div class="settle-card send"><span class="step-badge send">STEP 2 (외부)</span><div class="settle-text">${m}(이)가 외부에 <span class="highlight">${finalBal.toLocaleString()}원</span>을 보냅니다.</div></div>`; }
+                if (balance > 0) { step2Html += `<div class="settle-card keep"><span class="step-badge keep">STEP 2 (외부)</span><div class="settle-text">${esc(m)}(이)가 외부 자금 중 <span class="highlight">${finalBal.toLocaleString()}원</span>을 가집니다.</div></div>`; } 
+                else { step2Html += `<div class="settle-card send"><span class="step-badge send">STEP 2 (외부)</span><div class="settle-text">${esc(m)}(이)가 외부에 <span class="highlight">${finalBal.toLocaleString()}원</span>을 보냅니다.</div></div>`; }
             }
         });
 
         if (!hasExternalAction) step2Html = `<div style="font-size:0.8rem; color:#aaa; margin-top:5px;">* 외부와 주고받을 돈이 없습니다.</div>`;
         let footerMsg = appConfig.truncationUnit > 1 ? `<div style="font-size:0.7rem; color:#666; margin-top:10px; text-align:right;">* ${appConfig.truncationUnit}원 단위 미만은 절사되었습니다.</div>` : "";
 
-        document.getElementById('privateSection').innerHTML = `<hr style="border:0; border-top:1px dashed #555; margin:15px 0;"><div style="font-size:0.8rem; color:#bbb; margin-bottom:8px;">📍 ${myTeam.name} 내부 정산 레시피</div><div class="status-table">${statusHtml}</div>${step1Html}${step2Html}${footerMsg}`;
+        document.getElementById('privateSection').innerHTML = `<hr style="border:0; border-top:1px dashed #555; margin:15px 0;"><div style="font-size:0.8rem; color:#bbb; margin-bottom:8px;">📍 ${esc(myTeam.name)} 내부 정산 레시피</div><div class="status-table">${statusHtml}</div>${step1Html}${step2Html}${footerMsg}`;
         document.getElementById('result').style.display = 'block';
         document.getElementById('actionButtons').style.display = 'block';
         window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
